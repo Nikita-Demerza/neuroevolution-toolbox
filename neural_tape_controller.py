@@ -31,6 +31,7 @@ class nt_controller():
         
         if not (genom is None):
             self.nn.assemble_genom(genom)
+        self.input_size = input_size
     def init_output(self,output):
         shp = np.shape(output)
         if shp[0]>1:
@@ -46,7 +47,10 @@ class nt_controller():
         shp = np.shape(state)
         if shp[0]>1:
             state = np.reshape(state,[1,shp[0]])
-        self.nn.belts['input_tape'] = state
+        if np.shape(state)[1]<self.input_size:
+            state_extended = np.zeros([1,self.input_size])
+            state_extended[0,:np.shape(state)[1]] = state
+            state = state_extended
         #затем запустим прогноз, но не один раз, а циклом
         inp = np.concatenate([np.array([reward,done]),state[0]])
         in_ar = np.reshape(inp,[1,len(inp)])

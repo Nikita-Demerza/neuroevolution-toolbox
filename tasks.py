@@ -21,10 +21,10 @@ class dynamic_test:
             list_envs = [self.jet_table_1,self.jet_table_2,self.jet_table_3,self.jet_table_rot_1,self.jet_table_rot_2,self.aa_gun_1,self.aa_gun_2, self.labirint_1, self.labirint_2]
         else:
             #list_envs = [self.jet_table_1,self.jet_table_2,self.jet_table_rot_1,self.aa_gun_1, self.labirint_1]
-            #list_envs = [self.aa_gun_2]
+            list_envs = [self.aa_gun_2]
             #list_envs = [self.rocket_control]
             #list_envs = [self.labirint_1]
-            list_envs = [self.labirint_1]
+            #list_envs = [self.labirint_1,self.jet_table_1]
             #list_envs = [self.jet_table_1]
         q_arr = []
         q_arr_to_report = []
@@ -50,14 +50,14 @@ class dynamic_test:
         if self.draw:
             globals()['video'] = []
         q_arr = []
-        for seed in [1,3]:
+        for seed in range(6):
             q_arr.append(self.test(env,genom,size=30,seed=seed))
         return q_arr
     def test(self,env,genom,size=int(1e6),seed=1,draw=False):
         np.random.seed(seed)
         #это проигрыватель функций
         #создать контроллер
-        controller = neural_tape_controller.nt_controller(tacts=1,genom=np.array(genom),input_size=25,output_size=5)
+        controller = neural_tape_controller.nt_controller(tacts=1,genom=np.array(genom),input_size=36,output_size=5)
         #зарядить ленту
         controller.init_output(np.zeros([1,size]))
         reward_sum = 0
@@ -148,18 +148,18 @@ class dynamic_test:
                         bullet['t'] = 0
                         self.make_plane()
                         
-                        reward = 10
+                        reward = 100
                         if draw:
                             r=15
                             dr.ellipse((bullet['x']-r+x_shift, bullet['y']-r+y_shift, bullet['x']+r+x_shift, bullet['y']+r+y_shift), fill='white')
                             
                     elif (np.abs(bullet['x']-self.plane['x'])<collide_rad*2)and(np.abs(bullet['y']-self.plane['y'])<collide_rad*2):
-                        reward = 0.001#обозначить, что снаряд прошёл близко
+                        reward = 0.01#обозначить, что снаряд прошёл близко
                     elif (np.abs(bullet['x']-self.plane['x'])<collide_rad*4)and(np.abs(bullet['y']-self.plane['y'])<collide_rad*4):
-                        reward = 0.00001#обозначить, что снаряд прошёл близко
+                        reward = 0.0001#обозначить, что снаряд прошёл близко
                     elif (np.abs(bullet['x']-self.plane['x'])<collide_rad*6)and(np.abs(bullet['y']-self.plane['y'])<collide_rad*6):
-                        reward = 0.00000001#обозначить, что снаряд прошёл близко
-                        
+                        reward = 0.0000001#обозначить, что снаряд прошёл близко
+                    
                     if bullet['y']<0:
                         bullet['t'] = 0
                     self.bullets[i] = bullet
@@ -204,7 +204,7 @@ class dynamic_test:
                 self.bullets.append(bullet)
                 self.gun['t'] = self.gun['cooldown']
 
-            reward = self.step_simulation(draw=draw)
+            reward = self.step_simulation(draw=draw)-1
             if self.plane['x']>=100:
                 #всё, улетел, пересоздаём
                 self.make_plane()
