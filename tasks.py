@@ -148,18 +148,18 @@ class dynamic_test:
                         bullet['t'] = 0
                         self.make_plane()
                         
-                        reward = 10
+                        reward = 100
                         if draw:
                             r=15
                             dr.ellipse((bullet['x']-r+x_shift, bullet['y']-r+y_shift, bullet['x']+r+x_shift, bullet['y']+r+y_shift), fill='white')
                             
                     elif (np.abs(bullet['x']-self.plane['x'])<collide_rad*2)and(np.abs(bullet['y']-self.plane['y'])<collide_rad*2):
-                        reward = 0.001#обозначить, что снаряд прошёл близко
+                        reward = 0.01#обозначить, что снаряд прошёл близко
                     elif (np.abs(bullet['x']-self.plane['x'])<collide_rad*4)and(np.abs(bullet['y']-self.plane['y'])<collide_rad*4):
-                        reward = 0.00001#обозначить, что снаряд прошёл близко
+                        reward = 0.0001#обозначить, что снаряд прошёл близко
                     elif (np.abs(bullet['x']-self.plane['x'])<collide_rad*6)and(np.abs(bullet['y']-self.plane['y'])<collide_rad*6):
-                        reward = 0.00000001#обозначить, что снаряд прошёл близко
-                        
+                        reward = 0.0000001#обозначить, что снаряд прошёл близко
+                    
                     if bullet['y']<0:
                         bullet['t'] = 0
                     self.bullets[i] = bullet
@@ -204,7 +204,7 @@ class dynamic_test:
                 self.bullets.append(bullet)
                 self.gun['t'] = self.gun['cooldown']
 
-            reward = self.step_simulation(draw=draw)
+            reward = self.step_simulation(draw=draw)-1
             if self.plane['x']>=100:
                 #всё, улетел, пересоздаём
                 self.make_plane()
