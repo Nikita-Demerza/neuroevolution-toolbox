@@ -50,7 +50,7 @@ class dynamic_test:
         if self.draw:
             globals()['video'] = []
         q_arr = []
-        for seed in range(6):
+        for seed in range(8):
             q_arr.append(self.test(env,genom,size=30,seed=seed))
         return q_arr
     def test(self,env,genom,size=int(1e6),seed=1,draw=False):
@@ -191,6 +191,7 @@ class dynamic_test:
                 self.gun['fi'] = 3.14-min_angle
             self.gun['t'] -= 1
             shoot = (action[1]>0.1) and (self.gun['t']<=0)
+            reward = 0
             if shoot:
                 #создать новый снаряд
                 bullet_speed  = self.bullet_speed
@@ -203,12 +204,15 @@ class dynamic_test:
                 bullet['t'] = bullet_t
                 self.bullets.append(bullet)
                 self.gun['t'] = self.gun['cooldown']
+                #reward = -1
 
-            reward = self.step_simulation(draw=draw)-1
+            
             if self.plane['x']>=100:
                 #всё, улетел, пересоздаём
                 self.make_plane()
+                reward += -10
             done = 0
+            reward = reward + self.step_simulation(draw=draw)
             if len(self.bullets)>0:
                 bx,by = self.bullets[-1]['x'],self.bullets[-1]['y']
             else:
