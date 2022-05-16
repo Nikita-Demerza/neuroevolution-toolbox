@@ -192,7 +192,7 @@ class optimizer():
                 
             score_new = self.function(genom_cur)
             print('score_new',score_new,'score_prev',score_prev,'gained',score_new-score_prev)
-            if score_prev>score_new:
+            if score_prev>=score_new:
                 print('undo')
                 genom_cur=np.array(genom_prev)
                 step /=adapt
@@ -265,7 +265,7 @@ class optimizer():
         opt_name = 'rel_coord_default'
         stripe = 10
         maxiter = 25
-        step = 0.01
+        step = 0.05
         adapt=2
         chance_retry = 0.95
         self.relative_coordinate_descent(stripe,maxiter,step,opt_name,adapt,chance_retry)
@@ -300,7 +300,7 @@ class optimizer():
             genom_cur = genom_local
                 
             print('score_new',score_new,'score_prev',score_prev,'gained',score_new-score_prev)
-            if score_prev>score_new:
+            if score_prev>=score_new:
                 print('undo')
                 genom_cur=np.array(genom_prev)
                 step /=adapt
