@@ -51,9 +51,8 @@ class nt_controller():
         #на входе state, чем бы он ни был - наблюдением в динамической задаче или геномом в статической
         #reward - это последний доступный reward
         #done - это последний доступный done
-        #на выходе action - это всё содержимое выходной ленты.
+        #на выходе action
         
-        #для начала пишем в инпут-ленту
         shp = np.shape(state)
         if shp[0]>1:
             state = np.reshape(state,[1,shp[0]])
@@ -66,5 +65,4 @@ class nt_controller():
         in_ar = np.reshape(inp,[1,len(inp)])
         for i in range(int(self.tacts)):
             out = self.nn.predict_vector(in_ar)
-        #затем прочтём, то на выходе
         return np.array(out)
