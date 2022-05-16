@@ -321,11 +321,10 @@ class np_nn:
                 y = in_data
             elif layer['type']=='modulable':
                 min_len = np.min([int(len(np.ravel(in_data))), len(np.ravel(self.belts[layer['belt_name']]))])
-                k_add = self.belts[layer['belt_name']][:,:min_len]
+                k_add = np.arctan(self.belts[layer['belt_name']][:,:min_len])*20
                 #первая половина связей идёт в модуляцию
                 #плюс все связи пробрасываются вперёд
-                y = in_data*(1+k_add)
-
+                y = in_data*(0.1+k_add)
             if np.sum(np.isnan(y))>0:
                 print('nan in nn ')
                 print('y',y)
