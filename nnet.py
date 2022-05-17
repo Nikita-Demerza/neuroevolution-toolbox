@@ -112,6 +112,8 @@ class np_nn:
             if (desc['type']!='modulator_inertial') and (desc['type']!='modulator') and (desc['type']!='modulable'):
                 layer['w'] = np.array(np.random.normal(size=[in_size_cur,w_shape_in])*scale_weights, dtype=np.float16)
                 layer['b'] = np.array(np.random.normal(size=[1, in_size_cur])*scale_weights, dtype=np.float16)
+            elif (desc['type']=='modulable'):
+                layer['w_modulable'] = np.array(np.random.normal(size=[1,2])*scale_weights, dtype=np.float16)
             if desc['type']=='gru':
                 layer['w_mem'] = np.array(np.random.normal(size=[desc['out'],desc['cells']*2])*scale_weights, dtype=np.float16)#одни контакты - это что писать. Другие - насколько сильно.
                 layer['cells_sz'] = desc['cells']
@@ -321,7 +323,9 @@ class np_nn:
                 y = in_data
             elif layer['type']=='modulable':
                 min_len = np.min([int(len(np.ravel(in_data))), len(np.ravel(self.belts[layer['belt_name']]))])
-                k_add = np.arctan(self.belts[layer['belt_name']][:,:min_len])*100
+                k_amplif = 50*layer['w_modulable'][0,0]
+                threshold = 1e3*(layer['w_modulable'][0,1]+1)
+                k_add = np.arctan(k_amplif*self.belts[layer['belt_name']][:,:min_len]/threshold)*threshold
                 #первая половина связей идёт в модуляцию
                 #плюс все связи пробрасываются вперёд
                 y = in_data*(0.1+k_add)
@@ -375,6 +379,10 @@ class np_nn:
                 delta = len(np.ravel(layer['w_mem']))
                 layer['w_mem'] = np.reshape(genom[pointer:pointer+delta],newshape=np.shape(layer['w_mem']))
                 pointer += delta
+            if 'w_modulable' in layer.keys():
+                delta = len(np.ravel(layer['w_modulable']))
+                layer['w_modulable'] = np.reshape(genom[pointer:pointer+delta],newshape=np.shape(layer['w_modulable']))
+                pointer += delta
             
             self.layers[i] = layer
         for k in self.belts.keys():
@@ -390,5 +398,7 @@ class np_nn:
                 genom.append(np.ravel(layer['b']))
             if 'w_mem' in layer.keys():
                 genom.append(np.ravel(layer['w_mem']))
+            if 'w_modulable' in layer.keys():
+                genom.append(np.ravel(layer['w_modulable']))
         genom = np.concatenate(genom,axis=0)
         return genom
