@@ -319,7 +319,11 @@ class np_nn:
                 y = in_data
             elif layer['type']=='modulable':
                 min_len = np.min([int(len(np.ravel(in_data))), len(np.ravel(self.belts[layer['belt_name']]))])
+<<<<<<< HEAD
                 k_amplif = 200*layer['w_modulable'][0,0]
+=======
+                k_amplif = 50*layer['w_modulable'][0,0]
+>>>>>>> dd1e596dea936f0b4d9579555b89c6bcd6c1c000
                 threshold = 1e3*(layer['w_modulable'][0,1]+1)
                 k_add = np.arctan(k_amplif*self.belts[layer['belt_name']][:,:min_len]/threshold)*threshold
                 #первая половина связей идёт в модуляцию
