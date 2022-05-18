@@ -343,19 +343,20 @@ class np_nn:
                 #первая половина связей идёт в модуляцию
                 #плюс все связи пробрасываются вперёд
                 y = in_data*(0.1+k_add)
-            if np.sum(np.isnan(y))>0:
-                print('nan in nn ')
-                print('y',y)
-                print(f"layer {i} {layer['type']}" )
-                if layer['type']=='gru':
-                    print('y_how_write',y_how_write)
-                    print('y_what_write',y_what_write)
-                    print("layer['cells']", layer['cells'])
-                print('x',x)
-                print('in_data',in_data)
-                print("layer['b']",layer['b'])
-                print("layer['w']",layer['w'])
-                1/0
+            if 0:
+                if np.sum(np.isnan(y))>0:
+                    print('nan in nn ')
+                    print('y',y)
+                    print(f"layer {i} {layer['type']}" )
+                    if layer['type']=='gru':
+                        print('y_how_write',y_how_write)
+                        print('y_what_write',y_what_write)
+                        print("layer['cells']", layer['cells'])
+                    print('x',x)
+                    print('in_data',in_data)
+                    print("layer['b']",layer['b'])
+                    print("layer['w']",layer['w'])
+                    1/0
                 
             border = 1e4
             idx = (y>border)|(np.isinf(y))|(np.isnan(y))
