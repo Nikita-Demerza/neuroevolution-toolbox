@@ -340,12 +340,6 @@ class np_nn:
                 #первая половина связей идёт в модуляцию
                 #плюс все связи пробрасываются вперёд
                 y = in_data*(0.1+k_add)
-                
-                border = 1e7
-                idx = np.abs(y)>border
-                y[idx] = border
-                idx = y<-border
-                y[idx] = -border
             if np.sum(np.isnan(y))>0:
                 print('nan in nn ')
                 print('y',y)
@@ -359,6 +353,13 @@ class np_nn:
                 print("layer['b']",layer['b'])
                 print("layer['w']",layer['w'])
                 1/0
+                
+            border = 1e7
+            idx = (np.abs(y)>border)|(np.isinf(y))|(np.isnan(y))
+            y[idx] = border
+            idx = y<-border
+            y[idx] = -border
+            
             in_data = y
         y = np.ravel(y)
         return y
