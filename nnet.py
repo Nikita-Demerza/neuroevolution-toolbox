@@ -332,9 +332,20 @@ class np_nn:
                 k_amplif = 5*layer['w_modulable'][0,0:min_len]
                 threshold = 1e3*(layer['w_modulable'][0,min_len:2*min_len]+1)
                 k_add = np.sin(k_amplif*self.belts[layer['belt_name']][:,:min_len]/(np.abs(threshold)+0.01))*np.abs(threshold)
+                border = 1e6
+                idx = np.abs(k_add)>border
+                k_add[idx] = border
+                idx = k_add<-border
+                k_add[idx] = -border
                 #первая половина связей идёт в модуляцию
                 #плюс все связи пробрасываются вперёд
                 y = in_data*(0.1+k_add)
+                
+                border = 1e7
+                idx = np.abs(y)>border
+                y[idx] = border
+                idx = y<-border
+                y[idx] = -border
             if np.sum(np.isnan(y))>0:
                 print('nan in nn ')
                 print('y',y)
