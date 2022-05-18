@@ -317,7 +317,7 @@ class np_nn:
                 y = in_data
             elif layer['type']=='modulator_inertial':
                 min_len = np.min([int(len(np.ravel(in_data))/2), len(np.ravel(self.belts[layer['belt_name']]))])
-                self.belts[layer['belt_name']][:,:min_len] += in_data[:,:min_len]
+                self.belts[layer['belt_name']][0,:min_len] += in_data[0,:min_len]
                 #первая половина связей идёт в модуляцию
                 #плюс все связи пробрасываются вперёд
                 y = in_data
@@ -330,13 +330,16 @@ class np_nn:
                 self.belts[layer['belt_name']][idx] = -1e4
                 min_len = np.min([int(len(np.ravel(in_data))), len(np.ravel(self.belts[layer['belt_name']]))])
                 k_amplif = 5*layer['w_modulable'][0,0:min_len]
+                
+                border = 1e3
+                idx = (y>border)|(np.isinf(y))|(np.isnan(y))
+                k_amplif[idx] = border
+                idx = k_amplif<-border
+                k_amplif[idx] = -border
+                
                 threshold = 1e3*(layer['w_modulable'][0,min_len:2*min_len]+1)
-                k_add = np.sin(k_amplif*self.belts[layer['belt_name']][:,:min_len]/(np.abs(threshold)+0.01))*np.abs(threshold)
-                border = 1e6
-                idx = np.abs(k_add)>border
-                k_add[idx] = border
-                idx = k_add<-border
-                k_add[idx] = -border
+                k_add = np.sin(k_amplif*self.belts[layer['belt_name']][0,:min_len]/(np.abs(threshold)+0.01))*np.abs(threshold)
+                
                 #первая половина связей идёт в модуляцию
                 #плюс все связи пробрасываются вперёд
                 y = in_data*(0.1+k_add)
@@ -354,8 +357,8 @@ class np_nn:
                 print("layer['w']",layer['w'])
                 1/0
                 
-            border = 1e7
-            idx = (np.abs(y)>border)|(np.isinf(y))|(np.isnan(y))
+            border = 1e3
+            idx = (y>border)|(np.isinf(y))|(np.isnan(y))
             y[idx] = border
             idx = y<-border
             y[idx] = -border
