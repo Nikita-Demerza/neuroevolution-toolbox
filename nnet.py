@@ -318,14 +318,16 @@ class np_nn:
                 #плюс все связи пробрасываются вперёд
                 y = in_data
             elif layer['type']=='modulable':
+                idx = np.isinf(self.belts[layer['belt_name']])
+                self.belts[layer['belt_name']][idx] = 1e4
+                idx = self.belts[layer['belt_name']]>1e4
+                self.belts[layer['belt_name']][idx] = 1e4
+                idx = self.belts[layer['belt_name']]<-1e4
+                self.belts[layer['belt_name']][idx] = -1e4
                 min_len = np.min([int(len(np.ravel(in_data))), len(np.ravel(self.belts[layer['belt_name']]))])
-<<<<<<< HEAD
-                k_amplif = 200*layer['w_modulable'][0,0]
-=======
-                k_amplif = 50*layer['w_modulable'][0,0]
->>>>>>> dd1e596dea936f0b4d9579555b89c6bcd6c1c000
+                k_amplif = 5*layer['w_modulable'][0,0]
                 threshold = 1e3*(layer['w_modulable'][0,1]+1)
-                k_add = np.arctan(k_amplif*self.belts[layer['belt_name']][:,:min_len]/threshold)*threshold
+                k_add = np.sin(k_amplif*self.belts[layer['belt_name']][:,:min_len]/threshold)*threshold
                 #первая половина связей идёт в модуляцию
                 #плюс все связи пробрасываются вперёд
                 y = in_data*(0.1+k_add)
