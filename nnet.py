@@ -113,7 +113,7 @@ class np_nn:
                 layer['w'] = np.array(np.random.normal(size=[in_size_cur,w_shape_in])*scale_weights, dtype=np.float16)
                 layer['b'] = np.array(np.random.normal(size=[1, in_size_cur])*scale_weights, dtype=np.float16)
             elif (desc['type']=='modulable'):
-                layer['w_modulable'] = np.array(np.random.normal(size=[1,2])*scale_weights, dtype=np.float16)
+                layer['w_modulable'] = np.array(np.random.normal(size=[1,2*in_size_cur])*scale_weights, dtype=np.float16)
             if desc['type']=='gru':
                 layer['w_mem'] = np.array(np.random.normal(size=[desc['out'],desc['cells']*2])*scale_weights, dtype=np.float16)#одни контакты - это что писать. Другие - насколько сильно.
                 layer['cells_sz'] = desc['cells']
@@ -329,9 +329,9 @@ class np_nn:
                 idx = self.belts[layer['belt_name']]<-1e4
                 self.belts[layer['belt_name']][idx] = -1e4
                 min_len = np.min([int(len(np.ravel(in_data))), len(np.ravel(self.belts[layer['belt_name']]))])
-                k_amplif = 5*layer['w_modulable'][0,0]
-                threshold = 1e3*(layer['w_modulable'][0,1]+1)
-                k_add = np.sin(k_amplif*self.belts[layer['belt_name']][:,:min_len]/threshold)*threshold
+                k_amplif = 5*layer['w_modulable'][0,0:min_len]
+                threshold = 1e3*(layer['w_modulable'][0,min_len:2*min_len]+1)
+                k_add = np.sin(k_amplif*self.belts[layer['belt_name']][:,:min_len]/(np.abs(threshold)+0.01))*np.abs(threshold)
                 #первая половина связей идёт в модуляцию
                 #плюс все связи пробрасываются вперёд
                 y = in_data*(0.1+k_add)
