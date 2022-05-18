@@ -331,8 +331,8 @@ class np_nn:
                 min_len = np.min([int(len(np.ravel(in_data))), len(np.ravel(self.belts[layer['belt_name']]))])
                 k_amplif = 5*layer['w_modulable'][0,0:min_len]
                 
-                border = 1e3
-                idx = (y>border)|(np.isinf(y))|(np.isnan(y))
+                border = 1e4
+                idx = (k_amplif>border)|(np.isinf(k_amplif))|(np.isnan(k_amplif))
                 k_amplif[idx] = border
                 idx = k_amplif<-border
                 k_amplif[idx] = -border
@@ -357,7 +357,7 @@ class np_nn:
                 print("layer['w']",layer['w'])
                 1/0
                 
-            border = 1e3
+            border = 1e4
             idx = (y>border)|(np.isinf(y))|(np.isnan(y))
             y[idx] = border
             idx = y<-border
