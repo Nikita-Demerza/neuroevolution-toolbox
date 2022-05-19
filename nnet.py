@@ -109,11 +109,13 @@ class np_nn:
                 w_shape_in = desc['heads']*2
             else:
                 w_shape_in = desc['out']
-            if (desc['type']!='modulator_inertial') and (desc['type']!='modulator') and (desc['type']!='modulable'):
+            if (desc['type']!='modulator_inertial') and (desc['type']!='modulator') and (desc['type']!='modulable') and (desc['type']!='modulable_solid'):
                 layer['w'] = np.array(np.random.normal(size=[in_size_cur,w_shape_in])*scale_weights, dtype=np.float16)
                 layer['b'] = np.array(np.random.normal(size=[1, in_size_cur])*scale_weights, dtype=np.float16)
             elif (desc['type']=='modulable'):
                 layer['w_modulable'] = np.array(np.random.normal(size=[1,2*in_size_cur])*scale_weights, dtype=np.float16)
+            elif (desc['type']=='modulable_solid'):
+                layer['w_modulable'] = np.array(np.random.normal(size=[1,2])*scale_weights, dtype=np.float16)
             if desc['type']=='gru':
                 layer['w_mem'] = np.array(np.random.normal(size=[desc['out'],desc['cells']*2])*scale_weights, dtype=np.float16)#одни контакты - это что писать. Другие - насколько сильно.
                 layer['cells_sz'] = desc['cells']
@@ -143,6 +145,11 @@ class np_nn:
                 layer['belt_name'] = desc['name']
             elif desc['type']=='modulable':
                 #модулируемый слой. Его элементы равны w + wm, где wm - это выход модулятора
+                layer['belt_name'] = desc['name']
+                self.belts[desc['name']] = np.zeros([1,in_size_cur],dtype=np.float16)
+            elif desc['type']=='modulable_solid':
+                #модулируемый слой. Его элементы равны w + wm, где wm - это выход модулятора
+                #у него единые threshold и k_amplif на весь слой
                 layer['belt_name'] = desc['name']
                 self.belts[desc['name']] = np.zeros([1,in_size_cur],dtype=np.float16)
             elif desc['type']=='modulator':
@@ -340,6 +347,21 @@ class np_nn:
                 threshold = 1e3*(layer['w_modulable'][0,min_len:2*min_len]+1)
                 k_add = np.sin(k_amplif*self.belts[layer['belt_name']][0,:min_len]/(np.abs(threshold)+0.01))*np.abs(threshold)
                 
+                #первая половина связей идёт в модуляцию
+                #плюс все связи пробрасываются вперёд
+                y = in_data*(0.1+k_add)
+            elif layer['type']=='modulable_solid':
+                idx = np.isinf(self.belts[layer['belt_name']])
+                self.belts[layer['belt_name']][idx] = 1e4
+                idx = self.belts[layer['belt_name']]>1e4
+                self.belts[layer['belt_name']][idx] = 1e4
+                idx = self.belts[layer['belt_name']]<-1e4
+                self.belts[layer['belt_name']][idx] = -1e4
+                min_len = np.min([int(len(np.ravel(in_data))), len(np.ravel(self.belts[layer['belt_name']]))])
+                k_amplif = 5*layer['w_modulable'][0,0]
+                
+                threshold = 1e3*(layer['w_modulable'][0,1]+1)
+                k_add = np.sin(k_amplif*self.belts[layer['belt_name']][0,:min_len]/(np.abs(threshold)+0.01))*np.abs(threshold)
                 #первая половина связей идёт в модуляцию
                 #плюс все связи пробрасываются вперёд
                 y = in_data*(0.1+k_add)
