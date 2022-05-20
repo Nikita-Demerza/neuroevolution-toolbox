@@ -32,9 +32,9 @@ class nt_controller():
                 {'type':'ff','out':80,'activation':'lrelu'},
                 {'type':'modulator_inertial','out':80,'name':'mod3','activation':'linear'},
                 {'type':'ff','out':80,'activation':'lrelu'},
-                #{'type':'modulable','out':80,'name':'mod4','activation':'linear'},
-                #{'type':'ff','out':80,'activation':'lrelu'},
-                #{'type':'modulator_inertial','out':80,'name':'mod4','activation':'linear'},
+                {'type':'modulable_solid','out':80,'name':'mod4','activation':'linear'},
+                {'type':'ff','out':80,'activation':'lrelu'},
+                {'type':'modulator_inertial','out':80,'name':'mod4','activation':'linear'},
                 {'type':'ff','out':output_size,'activation':'lrelu'}]
         self.tacts = tacts#число тактов исполнения. Это ж типа МТ, так что надо дать несколько тактов
         self.nn = nnet.np_nn(layers_desc=layers_desc,in_size=input_size+2)
