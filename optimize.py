@@ -12,7 +12,7 @@ class optimizer():
     def __init__(self, function,genom_size,parallel_cores=1):
         self.history_gain = {}
         self.history_time = {}
-        self.optimizer_list = ['evol_wide','evol_mid_chaos','gradient_wide_50','rel_coord_default','evol_soft','gradient_long_adaptive_inertial','gradient_slow_20','gradient_long_adaptive']
+        self.optimizer_list = ['evol_agressive','evol_wide','evol_mid_chaos','gradient_wide_50','rel_coord_default','evol_soft','gradient_long_adaptive_inertial','gradient_slow_20','gradient_long_adaptive']
         #self.optimizer_list = ['evol_narrow']
         #self.optimizer_list = ['gradient_wide']
         for opt_name in self.optimizer_list:
@@ -48,7 +48,9 @@ class optimizer():
         chosen_optimizer = self.optimizer_list[amax]
         print('chosen',chosen_optimizer,'previous_result:',self.history_gain[opt_name][-1],'per tacts:',self.history_time[opt_name][-1])
         t = pd.Timestamp.now()
-        if chosen_optimizer=='evol_wide':
+        if chosen_optimizer=='evol_agressive':
+            self.evol_agressive()
+        elif chosen_optimizer=='evol_wide':
             self.evol_wide()
         elif chosen_optimizer=='evol_narrow':
             self.evol_narrow()
@@ -86,6 +88,24 @@ class optimizer():
         maxiter=4
         [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.01,mutation_p_e=0.01,
                   mutation_r=0.1, alpha_count=6,elitarism=4,verbose=True,
+                  out=[],
+                  start_point=self.best_genoms,get_extended=True)
+        gain = np.max(losses)-self.current_loss#было -2, стало -1. gain = 1. Положительный gain - хорошо
+        self.current_loss = np.max(losses)
+        time_left = popsize*(maxiter+1)
+        self.best_genoms.extend(genoms)
+        self.best_genoms.append(genom_best)
+        if not (opt_name in self.history_gain.keys()):
+                self.history_gain[opt_name] = []
+                self.history_time[opt_name] = []
+        self.history_gain[opt_name].append(gain)
+        self.history_time[opt_name].append(time_left)
+    def evol_agressive(self):
+        opt_name = 'evol_agressive'
+        popsize=40
+        maxiter=4
+        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.1,mutation_p_e=0.1,
+                  mutation_r=0.5, alpha_count=6,elitarism=4,verbose=True,
                   out=[],
                   start_point=self.best_genoms,get_extended=True)
         gain = np.max(losses)-self.current_loss#было -2, стало -1. gain = 1. Положительный gain - хорошо
