@@ -12,7 +12,6 @@ class optimizer():
     def __init__(self, function,genom_size,parallel_cores=1):
         self.history_gain = {}
         self.history_time = {}
-        
         self.optimizer_list = ['evol_wide','evol_mid_chaos','gradient_wide_50','rel_coord_default','evol_soft','gradient_long_adaptive_inertial','gradient_slow_20','gradient_long_adaptive']
         #self.optimizer_list = ['evol_narrow']
         #self.optimizer_list = ['gradient_wide']
@@ -83,7 +82,7 @@ class optimizer():
         
     def evol_wide(self):
         opt_name = 'evol_wide'
-        popsize=60
+        popsize=40
         maxiter=4
         [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.01,mutation_p_e=0.01,
                   mutation_r=0.1, alpha_count=6,elitarism=4,verbose=True,
@@ -101,7 +100,7 @@ class optimizer():
         self.history_time[opt_name].append(time_left)
     def evol_narrow(self):
         opt_name = 'evol_narrow'
-        popsize=10
+        popsize=6
         maxiter=12
         [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.01,mutation_p_e=0.3,
                   mutation_r=0.1, alpha_count=3,elitarism=2,verbose=True,
@@ -119,7 +118,7 @@ class optimizer():
         self.history_time[opt_name].append(time_left)
     def evol_soft(self):
         opt_name = 'evol_soft'
-        popsize=20
+        popsize=16
         maxiter=5
         [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=1,mutation_p_e=0.0,
                   mutation_r=0.004, alpha_count=5,elitarism=3,verbose=True,
@@ -140,7 +139,7 @@ class optimizer():
         self.history_time[opt_name].append(time_left)
     def evol_mid_chaos(self):
         opt_name = 'evol_mid_chaos'
-        popsize=20
+        popsize=14
         maxiter=2
         [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.05,mutation_p_e=0.1,
                   mutation_r=0.5, alpha_count=3,elitarism=3,verbose=True,
