@@ -102,9 +102,9 @@ class optimizer():
         self.history_time[opt_name].append(time_left)
     def evol_agressive(self):
         opt_name = 'evol_agressive'
-        popsize=40
-        maxiter=4
-        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.1,mutation_p_e=0.1,
+        popsize=100
+        maxiter=10
+        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.2,mutation_p_e=0.2,
                   mutation_r=0.5, alpha_count=6,elitarism=4,verbose=True,
                   out=[],
                   start_point=self.best_genoms,get_extended=True)
