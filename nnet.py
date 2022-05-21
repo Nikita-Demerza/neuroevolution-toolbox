@@ -6,6 +6,8 @@ from scipy import signal
 from scipy.stats import norm
 
 import copy
+import warnings
+warnings.filterwarnings('ignore')
 
 def make_gaussian(m,s,l):
     #никакая не гауссиана, зато быстро
@@ -330,11 +332,11 @@ class np_nn:
                 y = in_data
             elif layer['type']=='modulable':
                 idx = np.isinf(self.belts[layer['belt_name']])
-                self.belts[layer['belt_name']][idx] = 1e4
-                idx = self.belts[layer['belt_name']]>1e4
-                self.belts[layer['belt_name']][idx] = 1e4
-                idx = self.belts[layer['belt_name']]<-1e4
-                self.belts[layer['belt_name']][idx] = -1e4
+                self.belts[layer['belt_name']][idx] = 1e3
+                idx = self.belts[layer['belt_name']]>1e3
+                self.belts[layer['belt_name']][idx] = 1e3
+                idx = self.belts[layer['belt_name']]<-1e3
+                self.belts[layer['belt_name']][idx] = -1e3
                 min_len = np.min([int(len(np.ravel(in_data))), len(np.ravel(self.belts[layer['belt_name']]))])
                 k_amplif = 5*layer['w_modulable'][0,0:min_len]
                 
@@ -343,25 +345,28 @@ class np_nn:
                 k_amplif[idx] = border
                 idx = k_amplif<-border
                 k_amplif[idx] = -border
-                
                 threshold = 1e3*(layer['w_modulable'][0,min_len:2*min_len]+1)
-                k_add = np.sin(k_amplif*self.belts[layer['belt_name']][0,:min_len]/(np.abs(threshold)+0.01))*np.abs(threshold)
-                
-                #первая половина связей идёт в модуляцию
-                #плюс все связи пробрасываются вперёд
-                y = in_data*(0.1+k_add)
             elif layer['type']=='modulable_solid':
                 idx = np.isinf(self.belts[layer['belt_name']])
-                self.belts[layer['belt_name']][idx] = 1e4
-                idx = self.belts[layer['belt_name']]>1e4
-                self.belts[layer['belt_name']][idx] = 1e4
-                idx = self.belts[layer['belt_name']]<-1e4
-                self.belts[layer['belt_name']][idx] = -1e4
+                self.belts[layer['belt_name']][idx] = 1e3
+                idx = self.belts[layer['belt_name']]>1e3
+                self.belts[layer['belt_name']][idx] = 1e3
+                idx = self.belts[layer['belt_name']]<-1e3
+                self.belts[layer['belt_name']][idx] = -1e3
                 min_len = np.min([int(len(np.ravel(in_data))), len(np.ravel(self.belts[layer['belt_name']]))])
                 k_amplif = 5*layer['w_modulable'][0,0]
-                
-                threshold = 1e3*(layer['w_modulable'][0,1]+1)
-                k_add = np.sin(k_amplif*self.belts[layer['belt_name']][0,:min_len]/(np.abs(threshold)+0.01))*np.abs(threshold)
+                border = 1e4
+                if k_amplif>border:
+                    k_amplif=border
+                elif k_amplif<-border:
+                    k_amplif=-border
+                    
+                threshold = 1e3*(layer['w_modulable'][0,1]+1) 
+            if (layer['type']=='modulable_solid') or (layer['type']=='modulable'):
+                inversed_threshold = 1/(np.abs(threshold)+0.01)
+                if inversed_threshold>1e4:
+                    inversed_threshold=1e4
+                k_add = np.sin(k_amplif*self.belts[layer['belt_name']][0,:min_len]*inversed_threshold)*np.abs(threshold)
                 #первая половина связей идёт в модуляцию
                 #плюс все связи пробрасываются вперёд
                 y = in_data*(0.1+k_add)
