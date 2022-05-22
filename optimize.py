@@ -48,9 +48,7 @@ class optimizer():
         chosen_optimizer = self.optimizer_list[amax]
         print('chosen',chosen_optimizer,'previous_result:',self.history_gain[opt_name][-1],'per tacts:',self.history_time[opt_name][-1])
         t = pd.Timestamp.now()
-        if chosen_optimizer=='evol_agressive':
-            self.evol_agressive()
-        elif chosen_optimizer=='evol_wide':
+        if chosen_optimizer=='evol_wide':
             self.evol_wide()
         elif chosen_optimizer=='evol_narrow':
             self.evol_narrow()
@@ -84,30 +82,12 @@ class optimizer():
         
     def evol_wide(self):
         opt_name = 'evol_wide'
-        popsize=40
+        popsize=70
         maxiter=4
         [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.01,mutation_p_e=0.01,
-                  mutation_r=0.1, alpha_count=6,elitarism=4,verbose=True,
+                  mutation_r=0.15, alpha_count=6,elitarism=4,verbose=True,mutation_amplitude_source='std',
                   out=[],
-                  start_point=self.best_genoms,get_extended=True)
-        gain = np.max(losses)-self.current_loss#было -2, стало -1. gain = 1. Положительный gain - хорошо
-        self.current_loss = np.max(losses)
-        time_left = popsize*(maxiter+1)
-        self.best_genoms.extend(genoms)
-        self.best_genoms.append(genom_best)
-        if not (opt_name in self.history_gain.keys()):
-                self.history_gain[opt_name] = []
-                self.history_time[opt_name] = []
-        self.history_gain[opt_name].append(gain)
-        self.history_time[opt_name].append(time_left)
-    def evol_agressive(self):
-        opt_name = 'evol_agressive'
-        popsize=100
-        maxiter=10
-        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.2,mutation_p_e=0.2,
-                  mutation_r=0.5, alpha_count=6,elitarism=4,verbose=True,
-                  out=[],
-                  start_point=self.best_genoms,get_extended=True)
+                  start_point=self.best_genoms,get_extended=True,)
         gain = np.max(losses)-self.current_loss#было -2, стало -1. gain = 1. Положительный gain - хорошо
         self.current_loss = np.max(losses)
         time_left = popsize*(maxiter+1)
@@ -159,10 +139,10 @@ class optimizer():
         self.history_time[opt_name].append(time_left)
     def evol_mid_chaos(self):
         opt_name = 'evol_mid_chaos'
-        popsize=14
+        popsize=30
         maxiter=2
         [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.05,mutation_p_e=0.1,
-                  mutation_r=0.5, alpha_count=3,elitarism=3,verbose=True,
+                  mutation_r=1.2, alpha_count=3,elitarism=3,verbose=True,
                   out=[],
                   start_point=self.best_genoms,get_extended=True)
         gain = np.max(losses)-self.current_loss#Положительный gain - хорошо
@@ -342,7 +322,7 @@ class optimizer():
         
             
     def evol_parallel(self,function,bounds=[-1,1],size_x=10,popsize=20,maxiter=10,mutation_p=0.1,mutation_p_e=0.01,
-                  mutation_r=0.1,alpha_count=3,elitarism=2,seed=-1,verbose=True,
+                  mutation_r=0.1,alpha_count=3,elitarism=2,mutation_amplitude_source='rel',seed=-1,verbose=True,
                   out=[],
                   start_point=[],get_extended=False):
         #function - функция, которую надо оптимизировать
@@ -359,6 +339,7 @@ class optimizer():
 		#out - если сюда зарядить указатель на что-либо, то туда будет писаться отладочный вывод. Нужно, если мы захотим закрашить эволюцию на середине
 		#start_point - можно явно задать список стартовых генокодов
 		#get_extended - если True, то выводить не только наилучший генокод, а всё поколение
+        #mutation_amplitude_source = 'rel' / 'abs'/ 'std'. 'rel' - значит, амплитуда 0.1 означает 0.1 от значения данного гена. 'abs' - 0.1 берётся просто. 'std' - значит, берётся 0.1 от среднего разброса по популяции
         if seed<0:
             seed=int(pd.Timestamp.now().second+pd.Timestamp.now().minute*60)
         np.random.seed(seed)
@@ -396,7 +377,8 @@ class optimizer():
             x_new = []
             for elit in range(elitarism):
                 x_new.append(x_old[alpha_nums[elit]].copy())
-
+            
+            std_vector = np.std(x_old,axis=0) + 0.0000001
             for child in range(popsize - elitarism):
                 #скрещиваем
                 crossed_alphas = alpha_nums[[np.random.randint(low=0,high=alpha_count),np.random.randint(low=0,high=alpha_count)]]
@@ -405,7 +387,12 @@ class optimizer():
                 x_c[idx] = x_old[alpha_nums[1]][idx]
                 x_new.append(x_c)
                 idx_muta = np.random.rand(len(x_c))<mutation_p
-                x_c[idx_muta] += (np.random.rand(len(x_c[idx_muta]))-0.5)*2*mutation_r*(x_c[idx_muta]+0.000001)
+                if mutation_amplitude_source=='rel':
+                    x_c[idx_muta] += (np.random.rand(len(x_c[idx_muta]))-0.5)*2*mutation_r*(x_c[idx_muta]+0.000001)
+                elif mutation_amplitude_source=='abs':
+                    x_c[idx_muta] += (np.random.rand(len(x_c[idx_muta]))-0.5)*2*mutation_r
+                elif mutation_amplitude_source=='std':
+                    x_c[idx_muta] += (np.random.rand(len(x_c[idx_muta]))-0.5)*2*mutation_r*std_vector[idx_muta]
                 #x_c[x_c>bounds[1]]=bounds[1]
                 #x_c[x_c<bounds[0]]=bounds[0]
                 x_new.append(x_c.copy())
