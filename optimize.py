@@ -12,7 +12,7 @@ class optimizer():
     def __init__(self, function,genom_size,parallel_cores=1):
         self.history_gain = {}
         self.history_time = {}
-        self.optimizer_list = ['evol_agressive','evol_wide','evol_mid_chaos','gradient_wide_50','rel_coord_default','evol_soft','gradient_long_adaptive_inertial','gradient_slow_20','gradient_long_adaptive']
+        self.optimizer_list = ['evol_wide','evol_mid_chaos','gradient_wide_50','rel_coord_default','evol_soft','gradient_long_adaptive_inertial','gradient_slow_20','gradient_long_adaptive']
         #self.optimizer_list = ['evol_narrow']
         #self.optimizer_list = ['gradient_wide']
         for opt_name in self.optimizer_list:

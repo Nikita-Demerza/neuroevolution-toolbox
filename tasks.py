@@ -190,7 +190,7 @@ class dynamic_test:
             elif self.gun['fi']>3.14-min_angle:
                 self.gun['fi'] = 3.14-min_angle
             self.gun['t'] -= 1
-            shoot = (action[1]>0.1) and (self.gun['t']<=0)
+            shoot = (action[1]>0.1)# and (self.gun['t']<=0)
             reward = 0
             if shoot:
                 #создать новый снаряд
@@ -204,7 +204,7 @@ class dynamic_test:
                 bullet['t'] = bullet_t
                 self.bullets.append(bullet)
                 self.gun['t'] = self.gun['cooldown']
-                reward = -1
+                reward = -2
 
             
             if self.plane['x']>=100:
