@@ -83,9 +83,9 @@ class optimizer():
     def evol_wide(self):
         opt_name = 'evol_wide'
         popsize=40
-        maxiter=4
-        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.2,mutation_p_e=0.2,
-                  mutation_r=1, alpha_count=6,elitarism=4,verbose=True,mutation_amplitude_source='std',
+        maxiter=6
+        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.5,mutation_p_e=0.1,
+                  mutation_r=100, alpha_count=6,elitarism=4,verbose=True,mutation_amplitude_source='std',
                   out=[],
                   start_point=self.best_genoms,get_extended=True,)
         gain = np.max(losses)-self.current_loss#было -2, стало -1. gain = 1. Положительный gain - хорошо
@@ -102,8 +102,8 @@ class optimizer():
         opt_name = 'evol_narrow'
         popsize=6
         maxiter=12
-        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.01,mutation_p_e=0.3,
-                  mutation_r=0.1, alpha_count=3,elitarism=2,verbose=True,mutation_amplitude_source='std',
+        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.2,mutation_p_e=0.3,
+                  mutation_r=10, alpha_count=3,elitarism=2,verbose=True,mutation_amplitude_source='std',
                   out=[],
                   start_point=self.best_genoms,get_extended=True)
         gain = np.max(losses)-self.current_loss#Положительный gain - хорошо
@@ -120,8 +120,8 @@ class optimizer():
         opt_name = 'evol_soft'
         popsize=12
         maxiter=5
-        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=1,mutation_p_e=0.0,
-                  mutation_r=0.004, alpha_count=5,elitarism=3,verbose=True,mutation_amplitude_source='std',
+        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=1 ,mutation_p_e=0.01,
+                  mutation_r=0.1, alpha_count=5,elitarism=3,verbose=True,mutation_amplitude_source='std',
                   out=[],
                   start_point=self.best_genoms,get_extended=True)
         gain = np.max(losses)-self.current_loss#Положительный gain - хорошо
@@ -141,8 +141,8 @@ class optimizer():
         opt_name = 'evol_mid_chaos'
         popsize=24
         maxiter=2
-        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.05,mutation_p_e=0.1,
-                  mutation_r=1.2, alpha_count=3,elitarism=3,verbose=True,mutation_amplitude_source='std',
+        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.1,mutation_p_e=0.1,
+                  mutation_r=12, alpha_count=3,elitarism=3,verbose=True,mutation_amplitude_source='std',
                   out=[],
                   start_point=self.best_genoms,get_extended=True)
         gain = np.max(losses)-self.current_loss#Положительный gain - хорошо
