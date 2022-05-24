@@ -115,9 +115,9 @@ class np_nn:
                 layer['w'] = np.array(np.random.normal(size=[in_size_cur,w_shape_in])*scale_weights, dtype=np.float16)
                 layer['b'] = np.array(np.random.normal(size=[1, in_size_cur])*scale_weights, dtype=np.float16)
             elif (desc['type']=='modulable'):
-                layer['w_modulable'] = np.array(np.random.normal(size=[1,in_size_cur])*scale_weights, dtype=np.float16)
+                layer['w_modulable'] = np.array(np.random.normal(size=[1,in_size_cur*2])*scale_weights, dtype=np.float16)
             elif (desc['type']=='modulable_solid'):
-                layer['w_modulable'] = np.array(np.random.normal(size=[1,1])*scale_weights, dtype=np.float16)
+                layer['w_modulable'] = np.array(np.random.normal(size=[1,2])*scale_weights, dtype=np.float16)
             if desc['type']=='gru':
                 layer['w_mem'] = np.array(np.random.normal(size=[desc['out'],desc['cells']*2])*scale_weights, dtype=np.float16)#одни контакты - это что писать. Другие - насколько сильно.
                 layer['cells_sz'] = desc['cells']
