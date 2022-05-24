@@ -332,13 +332,20 @@ class np_nn:
                 y = in_data
             elif layer['type']=='modulable':
                 idx = np.isinf(self.belts[layer['belt_name']])
-                self.belts[layer['belt_name']][idx] = 1e4
-                idx = self.belts[layer['belt_name']]>1e4
-                self.belts[layer['belt_name']][idx] = 1e4
-                idx = self.belts[layer['belt_name']]<-1e4
-                self.belts[layer['belt_name']][idx] = -1e4
+                self.belts[layer['belt_name']][idx] = 1e3
+                idx = self.belts[layer['belt_name']]>1e3
+                self.belts[layer['belt_name']][idx] = 1e3
+                idx = self.belts[layer['belt_name']]<-1e3
+                self.belts[layer['belt_name']][idx] = -1e3
                 min_len = np.min([int(len(np.ravel(in_data))), len(np.ravel(self.belts[layer['belt_name']]))])
-                threshold = (layer['w_modulable'][0,0:min_len]+1)
+                k_amplif = 5*layer['w_modulable'][0,0:min_len]
+                
+                border = 1e4
+                idx = (k_amplif>border)|(np.isinf(k_amplif))|(np.isnan(k_amplif))
+                k_amplif[idx] = border
+                idx = k_amplif<-border
+                k_amplif[idx] = -border
+                threshold = 1e3*(layer['w_modulable'][0,min_len:2*min_len]+1)
             elif layer['type']=='modulable_solid':
                 idx = np.isinf(self.belts[layer['belt_name']])
                 self.belts[layer['belt_name']][idx] = 1e4
