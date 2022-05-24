@@ -187,8 +187,6 @@ class optimizer():
                     y_lst = list(map(self.function, [x for x in genoms]))
                 y_deltas = np.array(y_lst[1:]) - y_lst[0]
                 grad = y_deltas/np.sum(np.abs(y_deltas)+0.000001)
-                print('y_deltas',y_deltas)
-                print('grad',grad)
                     
             #ищем МАКСИМУМ
             for i in range(width):
