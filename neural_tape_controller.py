@@ -14,9 +14,9 @@ class nt_controller():
         #3 ленты: входная, выходная, лента памяти
         mem_size = 100
         heads_mem = 2
-        layers_desc = [{'type':'gru','out':input_size+2,'cells':30,'activation':'lrelu'},
+        layers_desc = [{'type':'gru','out':input_size+2,'cells':5,'activation':'lrelu'},
                 {'type':'ff','out':100,'activation':'lrelu'},
-                {'type':'modulable_solid','out':100,'name':'mod1','activation':'linear'},
+                {'type':'modulable','out':100,'name':'mod1','activation':'linear'},
                 {'type':'turing_read','name':'memory_tape','heads':heads_mem,'cells':mem_size,'activation':'lrelu'},
                 {'type':'ff','out':100,'activation':'lrelu'},
                 {'type':'turing_move','name':'memory_tape','heads':heads_mem,'cells':mem_size},
@@ -24,14 +24,21 @@ class nt_controller():
                 {'type':'ff','out':100,'activation':'lrelu'},
                 {'type':'modulator_inertial','out':100,'name':'mod1','activation':'linear'},
                 {'type':'ff','out':100,'activation':'lrelu'},                           
-                {'type':'modulable_solid','out':100,'name':'mod2','activation':'linear'},
+                {'type':'modulable','out':100,'name':'mod2','activation':'linear'},
                 {'type':'ff','out':100,'activation':'lrelu'},
                 {'type':'modulator_inertial','out':100,'name':'mod2','activation':'linear'},
                 {'type':'ff','out':100,'activation':'lrelu'},
-                {'type':'modulable_solid','out':100,'name':'mod3','activation':'linear'},
+                {'type':'modulable','out':100,'name':'mod3','activation':'linear'},
                 {'type':'ff','out':100,'activation':'lrelu'},
                 {'type':'modulator_inertial','out':100,'name':'mod3','activation':'linear'},
                 {'type':'ff','out':100,'activation':'lrelu'},
+                {'type':'modulable','out':100,'name':'mod4','activation':'linear'},
+                {'type':'ff','out':100,'activation':'lrelu'},
+                {'type':'modulator_inertial','out':100,'name':'mod4','activation':'linear'},
+                {'type':'ff','out':100,'activation':'lrelu'},
+                {'type':'modulable','out':100,'name':'mod5','activation':'linear'},
+                {'type':'ff','out':100,'activation':'lrelu'},
+                {'type':'modulator_inertial','out':100,'name':'mod5','activation':'linear'},
                 {'type':'ff','out':output_size,'activation':'lrelu'}]
         self.tacts = tacts#число тактов исполнения. Это ж типа МТ, так что надо дать несколько тактов
         self.nn = nnet.np_nn(layers_desc=layers_desc,in_size=input_size+2)
