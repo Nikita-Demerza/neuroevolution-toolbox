@@ -12,7 +12,7 @@ class optimizer():
     def __init__(self, function,genom_size,parallel_cores=1):
         self.history_gain = {}
         self.history_time = {}
-        self.optimizer_list = ['gradient_wide_50','evol_wide','evol_mid_chaos','rel_coord_default','evol_soft','gradient_long_adaptive_inertial','gradient_slow_20','gradient_long_adaptive','evol_narrow']
+        self.optimizer_list = ['evol_wide','evol_mid_chaos','rel_coord_default','gradient_wide_50','evol_soft','gradient_long_adaptive_inertial','gradient_slow_20','gradient_long_adaptive','evol_narrow']
         #self.optimizer_list = ['evol_narrow']
         #self.optimizer_list = ['gradient_wide']
         for opt_name in self.optimizer_list:
@@ -186,6 +186,10 @@ class optimizer():
                 else:
                     y_lst = list(map(self.function, [x for x in genoms]))
                 y_deltas = np.array(y_lst[1:]) - y_lst[0]
+                if np.max(y_deltas)>0:
+                    idx = idx_lst[np.argmax(y_deltas)]
+                    genom_reserve = np.array(genom_cur)
+                    genom_reserve[idx:idx+stripe] += step
                 grad = y_deltas/np.sum(np.abs(y_deltas)+0.000001)
                     
             #ищем МАКСИМУМ
@@ -197,12 +201,12 @@ class optimizer():
             score_new = self.function(genom_cur)
             print('score_new',score_new,'score_prev',score_prev,'gained',score_new-score_prev)
             #попробовать сделать шаг не по градиенту, а по одной из производных
-            if np.max(y_deltas)>0:
-                amax = np.argmax(y_deltas)
-                genom_cur = np.array(genom_prev)
-                genom_cur[idx_lst[amax:amax+stripe]] += step
-                score_new = score_prev + np.max(y_deltas)
-                print('but success with one derivative: score_new',score_new,'score_prev',score_prev,'gained',score_new-score_prev)
+            if score_prev>=score_new:
+                if np.max(y_deltas)>0:
+                    amax = np.argmax(y_deltas)
+                    genom_cur = genom_reserve
+                    score_new = self.function(genom_cur)
+                    print('but success with one derivative: score_new',score_new,'score_prev',score_prev,'gained',score_new-score_prev)
                 
             if score_prev>=score_new:
                 print('undo')
