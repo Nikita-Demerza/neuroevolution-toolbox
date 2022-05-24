@@ -12,7 +12,7 @@ class optimizer():
     def __init__(self, function,genom_size,parallel_cores=1):
         self.history_gain = {}
         self.history_time = {}
-        self.optimizer_list = ['evol_wide','evol_mid_chaos','gradient_wide_50','rel_coord_default','evol_soft','gradient_long_adaptive_inertial','gradient_slow_20','gradient_long_adaptive']
+        self.optimizer_list = ['gradient_wide_50','evol_wide','evol_mid_chaos','rel_coord_default','evol_soft','gradient_long_adaptive_inertial','gradient_slow_20','gradient_long_adaptive','evol_narrow']
         #self.optimizer_list = ['evol_narrow']
         #self.optimizer_list = ['gradient_wide']
         for opt_name in self.optimizer_list:
@@ -82,10 +82,10 @@ class optimizer():
         
     def evol_wide(self):
         opt_name = 'evol_wide'
-        popsize=40
-        maxiter=6
-        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.5,mutation_p_e=0.1,
-                  mutation_r=100, alpha_count=6,elitarism=4,verbose=True,mutation_amplitude_source='std',
+        popsize=70
+        maxiter=4
+        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.03,mutation_p_e=0.01,
+                  mutation_r=0.2, alpha_count=6,elitarism=4,verbose=True,mutation_amplitude_source='std',
                   out=[],
                   start_point=self.best_genoms,get_extended=True,)
         gain = np.max(losses)-self.current_loss#было -2, стало -1. gain = 1. Положительный gain - хорошо
@@ -100,10 +100,10 @@ class optimizer():
         self.history_time[opt_name].append(time_left)
     def evol_narrow(self):
         opt_name = 'evol_narrow'
-        popsize=6
-        maxiter=12
-        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.2,mutation_p_e=0.3,
-                  mutation_r=10, alpha_count=3,elitarism=2,verbose=True,mutation_amplitude_source='std',
+        popsize=8
+        maxiter=16
+        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.01,mutation_p_e=0.3,
+                  mutation_r=0.1, alpha_count=3,elitarism=2,mutation_amplitude_source='std',verbose=True,
                   out=[],
                   start_point=self.best_genoms,get_extended=True)
         gain = np.max(losses)-self.current_loss#Положительный gain - хорошо
@@ -118,10 +118,10 @@ class optimizer():
         self.history_time[opt_name].append(time_left)
     def evol_soft(self):
         opt_name = 'evol_soft'
-        popsize=12
+        popsize=16
         maxiter=5
-        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=1 ,mutation_p_e=0.01,
-                  mutation_r=0.1, alpha_count=5,elitarism=3,verbose=True,mutation_amplitude_source='std',
+        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=1,mutation_p_e=0.0,
+                  mutation_r=0.004, alpha_count=5,elitarism=3,verbose=True,
                   out=[],
                   start_point=self.best_genoms,get_extended=True)
         gain = np.max(losses)-self.current_loss#Положительный gain - хорошо
@@ -139,10 +139,10 @@ class optimizer():
         self.history_time[opt_name].append(time_left)
     def evol_mid_chaos(self):
         opt_name = 'evol_mid_chaos'
-        popsize=24
+        popsize=30
         maxiter=2
-        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.1,mutation_p_e=0.1,
-                  mutation_r=12, alpha_count=3,elitarism=3,verbose=True,mutation_amplitude_source='std',
+        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.05,mutation_p_e=0.1,
+                  mutation_r=1.2, alpha_count=3,elitarism=3,verbose=True,
                   out=[],
                   start_point=self.best_genoms,get_extended=True)
         gain = np.max(losses)-self.current_loss#Положительный gain - хорошо
@@ -156,13 +156,15 @@ class optimizer():
                 self.history_time[opt_name] = []
         self.history_gain[opt_name].append(gain)
         self.history_time[opt_name].append(time_left)
-    def gradient(self,width,stripe,maxiter,step,opt_name,adapt=1.0,chance_retry=0):
+    def gradient(self,width,stripe,maxiter,step,opt_name,adapt=1.0,chance_retry=0,momentum_usage_coef=0,momentum_eta=0.5):
         n_jobs = self.parallel_cores
         genom_cur = self.best_genoms[-1]
         genom_prev = np.array(genom_cur)
         score_prev = self.function(genom_prev)
         y_start = score_prev
         retry = False
+        
+        momentum = None
         for j in range(maxiter):
             if not retry:
                 genoms = [genom_cur]
@@ -185,18 +187,36 @@ class optimizer():
                     y_lst = list(map(self.function, [x for x in genoms]))
                 y_deltas = np.array(y_lst[1:]) - y_lst[0]
                 grad = y_deltas/np.sum(np.abs(y_deltas)+0.000001)
+                print('y_deltas',y_deltas)
+                print('grad',grad)
+                    
             #ищем МАКСИМУМ
             for i in range(width):
-                genom_cur[idx_lst[i:i+stripe]] -= grad[i]*step
+                genom_cur[idx_lst[i:i+stripe]] += grad[i]*step
+            if momentum is not None:
+                genom_cur += momentum*momentum_usage_coef
                 
             score_new = self.function(genom_cur)
             print('score_new',score_new,'score_prev',score_prev,'gained',score_new-score_prev)
+            #попробовать сделать шаг не по градиенту, а по одной из производных
+            if np.max(y_deltas)>0:
+                amax = np.argmax(y_deltas)
+                genom_cur = np.array(genom_prev)
+                genom_cur[idx_lst[amax:amax+stripe]] += step
+                score_new = score_prev + np.max(y_deltas)
+                print('but success with one derivative: score_new',score_new,'score_prev',score_prev,'gained',score_new-score_prev)
+                
             if score_prev>=score_new:
                 print('undo')
                 genom_cur=np.array(genom_prev)
                 step /=adapt
                 retry = False
             else:
+                if momentum is None:
+                    momentum = genom_cur - genom_prev
+                else:
+                    momentum += genom_cur - genom_prev
+                momentum *= momentum_eta
                 score_prev = score_new
                 genom_prev = np.array(genom_cur)
                 step *=adapt
@@ -219,7 +239,7 @@ class optimizer():
         maxiter = 4
         step = 0.07
         adapt=1
-        self.gradient(width,stripe,maxiter,step,opt_name,adapt)
+        self.gradient(width,stripe,maxiter,step,opt_name,adapt,momentum_usage_coef=0.2)
     def gradient_long_adaptive(self):
         opt_name = 'gradient_long_adaptive'
         width = 9
@@ -246,10 +266,10 @@ class optimizer():
         opt_name = 'gradient_wide_50'
         width = 8
         stripe = 50
-        maxiter = 4
-        step = 0.05
+        maxiter = 5
+        step = 0.005
         adapt=1
-        self.gradient(width,stripe,maxiter,step,opt_name,adapt)
+        self.gradient(width,stripe,maxiter,step,opt_name,adapt,momentum_usage_coef=0.2)
         
     def gradient_slow_20(self):      
         opt_name = 'gradient_slow_20'
