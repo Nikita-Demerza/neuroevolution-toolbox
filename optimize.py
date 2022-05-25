@@ -1,4 +1,5 @@
 import sys
+import pickle5 as pickle
 import numpy as np
 import pandas as pd
 from multiprocessing import Pool
@@ -9,11 +10,12 @@ import copy
 #И всё это дело обвязано "многоруким бандитом"
 
 class optimizer():
-    def __init__(self, function,genom_size,parallel_cores=1):
+    def __init__(self, function,genom_size,parallel_cores=1,save=""):
+        self.save = save
         self.history_gain = {}
         self.history_time = {}
-        self.optimizer_list = ['evol_wide','evol_mid_chaos','rel_coord_default','gradient_wide_50','evol_soft','gradient_long_adaptive_inertial','gradient_slow_20','gradient_long_adaptive','evol_narrow']
-        #self.optimizer_list = ['evol_narrow']
+        #self.optimizer_list = ['evol_wide','evol_mid_chaos','rel_coord_default','gradient_wide_50','evol_soft','gradient_long_adaptive_inertial','gradient_slow_20','gradient_long_adaptive','evol_narrow']
+        self.optimizer_list = ['evol_wide']
         #self.optimizer_list = ['gradient_wide']
         for opt_name in self.optimizer_list:
             self.history_gain[opt_name] = deque(maxlen=3)
@@ -82,10 +84,10 @@ class optimizer():
         
     def evol_wide(self):
         opt_name = 'evol_wide'
-        popsize=70
-        maxiter=4
-        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.03,mutation_p_e=0.01,
-                  mutation_r=0.2, alpha_count=6,elitarism=4,verbose=True,mutation_amplitude_source='std',
+        popsize=40
+        maxiter=1000
+        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.2,mutation_p_e=0.2,
+                  mutation_r=10, alpha_count=6,elitarism=4,verbose=True,mutation_amplitude_source='std',
                   out=[],
                   start_point=self.best_genoms,get_extended=True,)
         gain = np.max(losses)-self.current_loss#было -2, стало -1. gain = 1. Положительный gain - хорошо
@@ -233,7 +235,7 @@ class optimizer():
         self.history_gain[opt_name].append(y_end-y_start)#y растёт, gain растёт
         self.history_time[opt_name].append((width+1)*maxiter)
         self.current_loss=y_end
-    
+
     def gradient_wide(self):
         opt_name = 'gradient_wide'
         width = 25
@@ -418,7 +420,10 @@ class optimizer():
                 #x_c[x_c>bounds[1]]=bounds[1]
                 #x_c[x_c<bounds[0]]=bounds[0]
                 x_new.append(x_c.copy())
-
+            if self.save != "":
+                with open(self.save, 'wb') as f:
+                    pickle.dump(x_old.copy(),f,protocol=pickle.HIGHEST_PROTOCOL)
+                    #print('WRITTEN')
             x_old = x_new
             if len(out)>0:
                 out[0] = x_old.copy()
