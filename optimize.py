@@ -10,16 +10,16 @@ import pickle
 #И всё это дело обвязано "многоруким бандитом"
 
 class optimizer():
-    def __init__(self, function,genom_size,parallel_cores=1,init_file='./genom.pkl'):
+    def __init__(self, function,genom_size,parallel_cores=1,init_file='./genom.pkl',history_file='./history.pkl'):
         self.history_gain = {}
         self.history_time = {}
-        self.optimizer_list = ['evol_wide','evol_mid_chaos','gradient_wide_50','rel_coord_default','evol_soft','gradient_long_adaptive_inertial','gradient_slow_20','gradient_long_adaptive','evol_narrow']
-        self.optimizer_list = ['evol_infinite']
+        self.optimizer_list = ['evol_mid_chaos','gradient_wide_50','rel_coord_default','evol_soft','gradient_long_adaptive_inertial','gradient_slow_20','gradient_long_adaptive','evol_wide','evol_narrow']
+        #self.optimizer_list = ['evol_infinite']
         #self.optimizer_list = ['gradient_wide']
         for opt_name in self.optimizer_list:
-            self.history_gain[opt_name] = deque(maxlen=3)
+            self.history_gain[opt_name] = deque(maxlen=10)
             self.history_gain[opt_name].append(np.nan)
-            self.history_time[opt_name] = deque(maxlen=3)
+            self.history_time[opt_name] = deque(maxlen=10)
             self.history_time[opt_name].append(np.nan)
         self.current_loss = np.nan
         self.parallel_cores = parallel_cores
@@ -34,6 +34,13 @@ class optimizer():
             with open(self.init_file , 'rb') as f:
                 self.best_genoms.append(pickle.load(f))
             print('loaded successfully')
+        except Exception:
+            pass
+        self.history_file = history_file
+        try:
+            with open(self.history_file , 'rb') as f:
+                self.history_gain,self.history_time = pickle.load(f)
+            print('history loaded successfully')
         except Exception:
             pass
     def optimize(self):
@@ -90,6 +97,8 @@ class optimizer():
             self.function(self.best_genoms[-1], verbose=True, test_set=True)
         except Exception:
             pass
+        with open(self.history_file , 'wb') as f:
+            pickle.dump((self.history_gain,self.history_time),f,protocol=pickle.HIGHEST_PROTOCOL)
     
     def evol_infinite(self):
         opt_name = 'evol_infinite'
