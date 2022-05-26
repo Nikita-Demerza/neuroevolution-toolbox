@@ -404,7 +404,7 @@ class optimizer():
             #инициализация некими стартовыми точками
             ln = np.min([len(start_point),len(x_old)])
             x_old[:ln]=start_point
-            
+                      
         time_left = 0
         for t in range(maxiter):
             if n_jobs!=1:
@@ -456,7 +456,7 @@ class optimizer():
             mutation_p = mutation_p*(1-mutation_p_e)
             
             #сохраняем промежуточную инфу
-            best_genom = x_new[alpha_nums[0]]
+            best_genom = x_old[alpha_nums[0]]
             with open(self.init_file , 'wb') as f:
                 pickle.dump(best_genom,f,protocol=pickle.HIGHEST_PROTOCOL)
 
