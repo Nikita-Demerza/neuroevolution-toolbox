@@ -1,21 +1,20 @@
 import sys
-import pickle5 as pickle
 import numpy as np
 import pandas as pd
 from multiprocessing import Pool
 from collections import deque
 import copy
+import pickle
 
 #сделаем оптимизатор а-ля Абатур. Смесь из эволюции и градиентного спуска. Но сделаем его проще... И пусть эволюция может сохранять свои данные.
 #И всё это дело обвязано "многоруким бандитом"
 
 class optimizer():
-    def __init__(self, function,genom_size,parallel_cores=1,save=""):
-        self.save = save
+    def __init__(self, function,genom_size,parallel_cores=1,init_file='./genom.pkl'):
         self.history_gain = {}
         self.history_time = {}
-        #self.optimizer_list = ['evol_wide','evol_mid_chaos','rel_coord_default','gradient_wide_50','evol_soft','gradient_long_adaptive_inertial','gradient_slow_20','gradient_long_adaptive','evol_narrow']
-        self.optimizer_list = ['evol_wide']
+        self.optimizer_list = ['evol_wide','evol_mid_chaos','gradient_wide_50','rel_coord_default','evol_soft','gradient_long_adaptive_inertial','gradient_slow_20','gradient_long_adaptive','evol_narrow']
+        self.optimizer_list = ['evol_infinite']
         #self.optimizer_list = ['gradient_wide']
         for opt_name in self.optimizer_list:
             self.history_gain[opt_name] = deque(maxlen=3)
@@ -29,6 +28,14 @@ class optimizer():
         bounds = [-0.1,0.1]
         self.best_genoms.append(np.random.random(size=genom_size)*(bounds[1]-bounds[0]) + bounds[0])
         self.genom_size = genom_size
+        
+        self.init_file = init_file
+        try:
+            with open(self.init_file , 'rb') as f:
+                self.best_genoms.append(pickle.load(f))
+            print('loaded successfully')
+        except Exception:
+            pass
     def optimize(self):
         mx = []
         time_penalty = 0.0005
@@ -50,6 +57,8 @@ class optimizer():
         chosen_optimizer = self.optimizer_list[amax]
         print('chosen',chosen_optimizer,'previous_result:',self.history_gain[opt_name][-1],'per tacts:',self.history_time[opt_name][-1])
         t = pd.Timestamp.now()
+        if chosen_optimizer=='evol_infinite':
+            self.evol_infinite()
         if chosen_optimizer=='evol_wide':
             self.evol_wide()
         elif chosen_optimizer=='evol_narrow':
@@ -81,13 +90,32 @@ class optimizer():
             self.function(self.best_genoms[-1], verbose=True, test_set=True)
         except Exception:
             pass
+    
+    def evol_infinite(self):
+        opt_name = 'evol_infinite'
+        popsize=80
+        maxiter=int(1e9)
+        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.09,mutation_p_e=0.01,
+                  mutation_r=0.2, alpha_count=9,elitarism=4,verbose=True,mutation_amplitude_source='std',
+                  out=[],
+                  start_point=self.best_genoms,get_extended=True,)
+        gain = np.max(losses)-self.current_loss#было -2, стало -1. gain = 1. Положительный gain - хорошо
+        self.current_loss = np.max(losses)
+        time_left = popsize*(maxiter+1)
+        self.best_genoms.extend(genoms)
+        self.best_genoms.append(genom_best)
+        if not (opt_name in self.history_gain.keys()):
+                self.history_gain[opt_name] = []
+                self.history_time[opt_name] = []
+        self.history_gain[opt_name].append(gain)
+        self.history_time[opt_name].append(time_left)
         
     def evol_wide(self):
         opt_name = 'evol_wide'
-        popsize=40
-        maxiter=1000
-        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.2,mutation_p_e=0.2,
-                  mutation_r=10, alpha_count=6,elitarism=4,verbose=True,mutation_amplitude_source='std',
+        popsize=70
+        maxiter=4
+        [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.03,mutation_p_e=0.01,
+                  mutation_r=0.2, alpha_count=6,elitarism=4,verbose=True,mutation_amplitude_source='std',
                   out=[],
                   start_point=self.best_genoms,get_extended=True,)
         gain = np.max(losses)-self.current_loss#было -2, стало -1. gain = 1. Положительный gain - хорошо
@@ -235,7 +263,7 @@ class optimizer():
         self.history_gain[opt_name].append(y_end-y_start)#y растёт, gain растёт
         self.history_time[opt_name].append((width+1)*maxiter)
         self.current_loss=y_end
-
+    
     def gradient_wide(self):
         opt_name = 'gradient_wide'
         width = 25
@@ -420,15 +448,17 @@ class optimizer():
                 #x_c[x_c>bounds[1]]=bounds[1]
                 #x_c[x_c<bounds[0]]=bounds[0]
                 x_new.append(x_c.copy())
-            if self.save != "":
-                with open(self.save, 'wb') as f:
-                    pickle.dump(x_old.copy(),f,protocol=pickle.HIGHEST_PROTOCOL)
-                    #print('WRITTEN')
+
             x_old = x_new
             if len(out)>0:
                 out[0] = x_old.copy()
 
             mutation_p = mutation_p*(1-mutation_p_e)
+            
+            #сохраняем промежуточную инфу
+            best_genom = x_new[alpha_nums[0]]
+            with open(self.init_file , 'wb') as f:
+                pickle.dump(best_genom,f,protocol=pickle.HIGHEST_PROTOCOL)
 
         if n_jobs!=1:
             pool = Pool(processes=n_jobs)
