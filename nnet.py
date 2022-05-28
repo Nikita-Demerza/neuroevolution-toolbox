@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from scipy import signal
 from scipy.stats import norm
 import cv2
+import torch
+import torch.nn as nn
 import copy
 import warnings
 warnings.filterwarnings('ignore')
@@ -165,8 +167,11 @@ class np_nn:
                 #Половина нейронов пишет в ленту, половина просто дальше
                 layer['belt_name'] = desc['name']
             elif desc['type']=='conv':
-                layer['filter']=np.array(np.random.normal(size=desc['filter_size'])*scale_weights, dtype=np.float16)
+                layer['kernel']=torch.tensor(np.array(np.random.normal(size=desc['filter_size'])*scale_weights, dtype=np.float32),dtype=torch.float32)
+                layer['stride']=desc['stride']
+                layer['padding']=desc['padding']
                 layer['filter_size']=desc['filter_size']
+                layer['layer']=nn.Conv2d(layer['kernel'].shape[1], layer['kernel'].shape[0], (layer['kernel'].shape[2],layer['kernel'].shape[3]), layer['stride'], layer['padding'],bias=False)
             elif desc['type']=='max_pool':
                 layer['pool_size']=desc['pool_size']
                 layer['stride']=desc['stride']
@@ -357,24 +362,28 @@ class np_nn:
                 y = in_data*k
             elif layer['type']=='conv':
                 shp = np.shape(in_data)
-                if shp[0]==1:
-                    inp = np.reshape(in_data,[*shp[1:]])
-                else:
-                    inp = in_data
+                inp = torch.tensor(in_data,dtype=torch.float32)
+                if shp[1]!=layer['kernel'].shape[1]:
+                    inp = inp.reshape((1,shp[3],shp[1],shp[2]))
                 #y = self.conv(img=inp, conv_filter=layer['filter'])
-                if layer['filter_size'][-1]==3:
-                    yr = cv2.filter2D(inp,-1,np.uint16(layer['filter'][0,:,:,0]))
-                    yg = cv2.filter2D(inp,-1,np.uint16(layer['filter'][0,:,:,1]))
-                    yb = cv2.filter2D(inp,-1,np.uint16(layer['filter'][0,:,:,2]))
-                    y = (yr+yg+yb)/3
-                else:
-                    y = cv2.filter2D(inp,-1,np.uint16(layer['filter'][0,:,:,0]))
+                try:
+                    layer['layer'].load_state_dict({'weight': layer['kernel']}, strict=False)
+                except:
+                    print(layer['layer'].weight.shape)
+                    print(layer['kernel'].shape)
+                    1/0
+                try:
+                    y = layer['layer'](inp)
+                except:
+                    print(inp.shape)
+                    1/0
             elif layer['type']=='flatten':
                 size_out = 1
                 for i in in_data.shape: size_out = size_out*i
                 y=in_data.reshape((size_out))
             elif layer['type']=='max_pool':
-                y=self.max_pool(in_data,layer['pool_size'],layer['stride'])
+                inp = torch.tensor(in_data,dtype=torch.float32)
+                y=nn.MaxPool2d(layer['pool_size'], stride=layer['stride'])(inp)
             if 0:
                 if np.sum(np.isnan(y))>0:
                     print('nan in nn ')
@@ -389,13 +398,14 @@ class np_nn:
                     print("layer['b']",layer['b'])
                     print("layer['w']",layer['w'])
                     1/0
-                
             border = 1e4
-            idx = (y>border)|(np.isinf(y))|(np.isnan(y))
-            y[idx] = border
-            idx = y<-border
-            y[idx] = -border
-            
+            try:
+                idx = (y>border)|(np.isinf(y))|(np.isnan(y))
+                y[idx] = border
+                idx = y<-border
+                y[idx] = -border
+            except:
+                y = y.detach().numpy()
             in_data = y
         y = np.ravel(y)
         return y
