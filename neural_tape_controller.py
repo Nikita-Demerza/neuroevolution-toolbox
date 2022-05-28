@@ -15,10 +15,13 @@ class nt_controller():
         mem_size = 100
         heads_mem = 2
         layers_desc = [#{'type':'gru','out':input_size+2,'cells':5,'activation':'lrelu'},
-                {'type':'conv','out':250,'activation':'lrelu'},
-                {'type':'conv','out':250,'activation':'lrelu'},
-                {'type':'conv','out':250,'activation':'lrelu'},
-                {'type':'flatten','out':250,'activation':'linear'},
+                {'type':'conv','filter_size':[1,3,3,3],'activation':'lrelu'},
+                {'type':'max_pool','pool_size':2,'stride':2,'activation':'lrelu'},
+                {'type':'conv','filter_size':[1,3,3,1],'activation':'lrelu'},
+                {'type':'max_pool','pool_size':2,'stride':2,'activation':'lrelu'},
+                {'type':'conv','filter_size':[1,3,3,1],'activation':'lrelu'},
+                {'type':'max_pool','pool_size':2,'stride':2,'activation':'lrelu'},
+                {'type':'flatten','out':352,'activation':'linear'},
                 {'type':'ff','out':200,'activation':'lrelu'},
                 {'type':'modulable','out':200,'name':'mod1','activation':'linear'},
                 {'type':'turing_read','name':'memory_tape','heads':heads_mem,'cells':mem_size,'activation':'lrelu'},

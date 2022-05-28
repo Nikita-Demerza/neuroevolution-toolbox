@@ -109,9 +109,11 @@ class np_nn:
                 #на выходе: копия входа
                 desc['out'] = in_size_cur
                 w_shape_in = desc['heads']*2
-            else:
+            elif layer['type']!='conv' and layer['type']!='max_pool':
                 w_shape_in = desc['out']
-            if (desc['type']!='modulator_inertial') and (desc['type']!='modulator') and (desc['type']!='modulable') and (desc['type']!='modulable_solid') and (desc['type']!='conv') and (desc['type']!='flatten'):
+            else:
+                w_shape_in = 1
+            if (desc['type']!='modulator_inertial') and (desc['type']!='modulator') and (desc['type']!='modulable') and (desc['type']!='modulable_solid') and (desc['type']!='conv') and (desc['type']!='flatten') and layer['type']!='max_pool':
                 layer['w'] = np.array(np.random.normal(size=[in_size_cur,w_shape_in])*scale_weights, dtype=np.float16)
                 layer['b'] = np.array(np.random.normal(size=[1, in_size_cur])*scale_weights, dtype=np.float16)
             elif (desc['type']=='modulable'):
@@ -163,14 +165,16 @@ class np_nn:
                 #Половина нейронов пишет в ленту, половина просто дальше
                 layer['belt_name'] = desc['name']
             elif desc['type']=='conv':
-                layer['filter']=np.array(np.random.normal(size=[3,3,3,3])*scale_weights, dtype=np.float16)
-
+                layer['filter']=np.array(np.random.normal(size=desc['filter_size'])*scale_weights, dtype=np.float16)
+            elif desc['type']=='max_pool':
+                layer['pool_size']=desc['pool_size']
+                layer['stride']=desc['stride']
             if not ('activation' in desc.keys()):
                 desc['activation'] = 'relu'#max(0,x)
             layer['activation'] = desc['activation']
             
             self.layers.append(layer)
-            in_size_cur = desc['out']
+            if layer['type']!='conv' and layer['type']!='max_pool': in_size_cur = desc['out']
     def track_time(self,msg=''):
         if self.timetracking:
             now = pd.Timestamp.now()
@@ -357,10 +361,12 @@ class np_nn:
                 else:
                     inp = in_data
                 y = self.conv(img=inp, conv_filter=layer['filter'])
-            if layer['type']=='flatten':
+            elif layer['type']=='flatten':
                 size_out = 1
                 for i in in_data.shape: size_out = size_out*i
                 y=in_data.reshape((size_out))
+            elif layer['type']=='max_pool':
+                y=self.max_pool(in_data,layer['pool_size'],layer['stride'])
             if 0:
                 if np.sum(np.isnan(y))>0:
                     print('nan in nn ')
@@ -486,3 +492,14 @@ class np_nn:
                 conv_map = self.conv_(img, curr_filter)
             feature_maps[:, :, filter_num] = conv_map
         return feature_maps
+    def max_pool(self,feature_map,size,stride):
+        pool_out = np.zeros((int((feature_map.shape[0]-size+1)/stride), int((feature_map.shape[1]-size+1)/stride), feature_map.shape[-1]))
+        for map_num in range(feature_map.shape[-1]):
+            ri = 0
+            for r in np.arange(0,feature_map.shape[0]-size-1, stride):
+                ci = 0
+                for c in np.arange(0, feature_map.shape[1]-size-1, stride):
+                    pool_out[ri, ci, map_num] = np.max([feature_map[r:r+size,  c:c+size, map_num]])
+                    ci = ci + 1
+                ri = ri +1
+        return pool_out
