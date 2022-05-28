@@ -15,30 +15,34 @@ class nt_controller():
         mem_size = 100
         heads_mem = 2
         layers_desc = [#{'type':'gru','out':input_size+2,'cells':5,'activation':'lrelu'},
-                {'type':'ff','out':160,'activation':'lrelu'},
-                {'type':'modulable','out':160,'name':'mod1','activation':'linear'},
+                {'type':'conv','out':250,'activation':'lrelu'},
+                {'type':'conv','out':250,'activation':'lrelu'},
+                {'type':'conv','out':250,'activation':'lrelu'},
+                {'type':'flatten','out':250,'activation':'linear'},
+                {'type':'ff','out':200,'activation':'lrelu'},
+                {'type':'modulable','out':200,'name':'mod1','activation':'linear'},
                 {'type':'turing_read','name':'memory_tape','heads':heads_mem,'cells':mem_size,'activation':'lrelu'},
-                {'type':'ff','out':160,'activation':'lrelu'},
+                {'type':'ff','out':200,'activation':'lrelu'},
                 {'type':'turing_move','name':'memory_tape','heads':heads_mem,'cells':mem_size},
                 {'type':'turing_write','name':'memory_tape','heads':heads_mem,'cells':mem_size},           
-                {'type':'ff','out':160,'activation':'lrelu'},
-                {'type':'modulator_inertial','out':160,'name':'mod1','activation':'linear'},
-                {'type':'ff','out':160,'activation':'lrelu'},                           
-                {'type':'modulable','out':160,'name':'mod2','activation':'linear'},
-                #{'type':'ff','out':160,'activation':'lrelu'},
-                {'type':'modulator_inertial','out':160,'name':'mod2','activation':'linear'},
-                {'type':'ff','out':160,'activation':'lrelu'},
-                {'type':'modulable','out':160,'name':'mod3','activation':'linear'},
-                #{'type':'ff','out':160,'activation':'lrelu'},
-                {'type':'modulator_inertial','out':160,'name':'mod3','activation':'linear'},
-                {'type':'ff','out':160,'activation':'lrelu'},
-                {'type':'modulable','out':100,'name':'mod4','activation':'linear'},
-                #{'type':'ff','out':160,'activation':'lrelu'},
-                {'type':'modulator_inertial','out':160,'name':'mod4','activation':'linear'},
-                {'type':'ff','out':160,'activation':'lrelu'},
-                {'type':'modulable','out':160,'name':'mod5','activation':'linear'},
-                #{'type':'ff','out':160,'activation':'lrelu'},
-                {'type':'modulator_inertial','out':160,'name':'mod5','activation':'linear'},
+                {'type':'ff','out':200,'activation':'lrelu'},
+                {'type':'modulator_inertial','out':200,'name':'mod1','activation':'linear'},
+                {'type':'ff','out':200,'activation':'lrelu'},                           
+                {'type':'modulable','out':200,'name':'mod2','activation':'linear'},
+                {'type':'ff','out':200,'activation':'lrelu'},
+                {'type':'modulator_inertial','out':200,'name':'mod2','activation':'linear'},
+                {'type':'ff','out':200,'activation':'lrelu'},
+                {'type':'modulable','out':200,'name':'mod3','activation':'linear'},
+                {'type':'ff','out':200,'activation':'lrelu'},
+                {'type':'modulator_inertial','out':200,'name':'mod3','activation':'linear'},
+                {'type':'ff','out':150,'activation':'lrelu'},
+                {'type':'modulable','out':150,'name':'mod4','activation':'linear'},
+                {'type':'ff','out':150,'activation':'lrelu'},
+                {'type':'modulator_inertial','out':150,'name':'mod4','activation':'linear'},
+                {'type':'ff','out':100,'activation':'lrelu'},
+                {'type':'modulable','out':100,'name':'mod5','activation':'linear'},
+                {'type':'ff','out':100,'activation':'lrelu'},
+                {'type':'modulator_inertial','out':100,'name':'mod5','activation':'linear'},
                 {'type':'ff','out':output_size,'activation':'lrelu'}]
         self.tacts = tacts#число тактов исполнения. Это ж типа МТ, так что надо дать несколько тактов
         self.nn = nnet.np_nn(layers_desc=layers_desc,in_size=input_size+2)
@@ -59,14 +63,15 @@ class nt_controller():
         
         shp = np.shape(state)
         if shp[0]>1:
-            state = np.reshape(state,[1,shp[0]])
-        if np.shape(state)[1]<self.input_size:
-            state_extended = np.zeros([1,self.input_size])
-            state_extended[0,:np.shape(state)[1]] = state
-            state = state_extended
+            state = np.reshape(state,[1,*shp])
+        #if np.shape(state)[1]<self.input_size:
+        #    state_extended = np.zeros([1,self.input_size])
+        #    state_extended[0,:np.shape(state)[1]] = state
+        #    state = state_extended
         #затем запустим прогноз, но не один раз, а циклом
-        inp = np.concatenate([np.array([reward,done]),state[0]])
-        in_ar = np.reshape(inp,[1,len(inp)])
+        #inp = np.concatenate([np.array([reward,done]),state[0]])
+        inp = state[0]
+        in_ar = np.reshape(inp,[1,*inp.shape])
         for i in range(int(self.tacts)):
             out = self.nn.predict_vector(in_ar)
         return np.array(out)

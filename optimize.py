@@ -102,7 +102,7 @@ class optimizer():
     
     def evol_infinite(self):
         opt_name = 'evol_infinite'
-        popsize=80
+        popsize=40
         maxiter=int(1e9)
         [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.09,mutation_p_e=0.01,
                   mutation_r=0.2, alpha_count=9,elitarism=4,verbose=True,mutation_amplitude_source='std',
@@ -121,7 +121,7 @@ class optimizer():
         
     def evol_wide(self):
         opt_name = 'evol_wide'
-        popsize=70
+        popsize=40
         maxiter=4
         [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.03,mutation_p_e=0.01,
                   mutation_r=0.2, alpha_count=6,elitarism=4,verbose=True,mutation_amplitude_source='std',
@@ -160,7 +160,7 @@ class optimizer():
         popsize=16
         maxiter=5
         [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=1,mutation_p_e=0.0,
-                  mutation_r=0.004, alpha_count=5,elitarism=3,verbose=True,
+                  mutation_r=0.004, alpha_count=5,elitarism=3,mutation_amplitude_source='std',verbose=True,
                   out=[],
                   start_point=self.best_genoms,get_extended=True)
         gain = np.max(losses)-self.current_loss#Положительный gain - хорошо
@@ -181,7 +181,7 @@ class optimizer():
         popsize=30
         maxiter=2
         [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.05,mutation_p_e=0.1,
-                  mutation_r=1.2, alpha_count=3,elitarism=3,verbose=True,
+                  mutation_r=1.2, alpha_count=3,elitarism=3,mutation_amplitude_source='std',verbose=True,
                   out=[],
                   start_point=self.best_genoms,get_extended=True)
         gain = np.max(losses)-self.current_loss#Положительный gain - хорошо

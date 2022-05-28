@@ -111,7 +111,7 @@ class np_nn:
                 w_shape_in = desc['heads']*2
             else:
                 w_shape_in = desc['out']
-            if (desc['type']!='modulator_inertial') and (desc['type']!='modulator') and (desc['type']!='modulable') and (desc['type']!='modulable_solid'):
+            if (desc['type']!='modulator_inertial') and (desc['type']!='modulator') and (desc['type']!='modulable') and (desc['type']!='modulable_solid') and (desc['type']!='conv') and (desc['type']!='flatten'):
                 layer['w'] = np.array(np.random.normal(size=[in_size_cur,w_shape_in])*scale_weights, dtype=np.float16)
                 layer['b'] = np.array(np.random.normal(size=[1, in_size_cur])*scale_weights, dtype=np.float16)
             elif (desc['type']=='modulable'):
@@ -162,7 +162,9 @@ class np_nn:
                 #модулирующий слой. У него есть и ff-выход (чтобы сеть была сквозной), и запись в ленту.
                 #Половина нейронов пишет в ленту, половина просто дальше
                 layer['belt_name'] = desc['name']
-                
+            elif desc['type']=='conv':
+                layer['filter']=np.array(np.random.normal(size=[3,3,3,3])*scale_weights, dtype=np.float16)
+
             if not ('activation' in desc.keys()):
                 desc['activation'] = 'relu'#max(0,x)
             layer['activation'] = desc['activation']
@@ -190,7 +192,7 @@ class np_nn:
         x = x.astype('float16')
         shp = np.shape(x)
         if shp[0]>1:
-            x = np.reshape(x,[1,shp[0]])
+            x = np.reshape(x,[1,*shp])
         in_data = x
         if self.global_cells_sz>0:
             in_data = np.hstack([in_data,self.global_cells])
@@ -342,12 +344,23 @@ class np_nn:
                 k_amplif = 5*layer['w_modulable'][0,0]
                 k_start = layer['w_modulable'][0,2]
                 threshold = (layer['w_modulable'][0,1]+1) 
-            if (layer['type']=='modulable_solid') or (layer['type']=='modulable'):
+            elif (layer['type']=='modulable_solid') or (layer['type']=='modulable'):
                 inversed_threshold = 1/(np.abs(threshold)+0.01)
                 k = np.sin((k_start+self.belts[layer['belt_name']][0,:min_len])*inversed_threshold)*k_amplif
                 #первая половина связей идёт в модуляцию
                 #плюс все связи пробрасываются вперёд
                 y = in_data*k
+            elif layer['type']=='conv':
+                shp = np.shape(in_data)
+                if shp[0]==1:
+                    inp = np.reshape(in_data,[*shp[1:]])
+                else:
+                    inp = in_data
+                y = self.conv(img=inp, conv_filter=layer['filter'])
+            if layer['type']=='flatten':
+                size_out = 1
+                for i in in_data.shape: size_out = size_out*i
+                y=in_data.reshape((size_out))
             if 0:
                 if np.sum(np.isnan(y))>0:
                     print('nan in nn ')
@@ -410,6 +423,10 @@ class np_nn:
                 delta = len(np.ravel(layer['w_modulable']))
                 layer['w_modulable'] = np.reshape(genom[pointer:pointer+delta],newshape=np.shape(layer['w_modulable']))
                 pointer += delta
+            if 'filter' in layer.keys():
+                delta = len(np.ravel(layer['filter']))
+                layer['filter'] = np.reshape(genom[pointer:pointer+delta],newshape=np.shape(layer['filter']))
+                pointer += delta
             
             self.layers[i] = layer
         for k in self.belts.keys():
@@ -427,5 +444,45 @@ class np_nn:
                 genom.append(np.ravel(layer['w_mem']))
             if 'w_modulable' in layer.keys():
                 genom.append(np.ravel(layer['w_modulable']))
+            if 'filter' in layer.keys():
+                genom.append(np.ravel(layer['filter']))
         genom = np.concatenate(genom,axis=0)
         return genom
+    def conv_(self,img, conv_filter):
+        filter_size = conv_filter.shape[1]
+        result = np.zeros((img.shape))
+        for r in np.arange(filter_size/2.0, img.shape[0]-filter_size/2.0+1):
+            for c in np.arange(filter_size/2.0, img.shape[1]-filter_size/2.0+1):
+                curr_region = img[int(r-np.floor(filter_size/2.0)):int(r+filter_size/2.0), int(c-np.floor(filter_size/2.0)):int(c+filter_size/2.0)]
+                curr_result = curr_region * conv_filter
+                conv_sum = np.sum(curr_result)
+                result[int(r), int(c)] = conv_sum
+        final_result = result[int(filter_size/2.0):int(result.shape[0]-filter_size/2.0), int(filter_size/2.0):int(result.shape[1]-filter_size/2.0)]
+        return final_result
+
+    def conv(self,img, conv_filter):
+        if len(img.shape) > 2 or len(conv_filter.shape) > 3:
+            if img.shape[-1] != conv_filter.shape[-1]:
+                print("Error: Number of channels in both image and filter must match.")
+                sys.exit()
+        if conv_filter.shape[1] != conv_filter.shape[2]:
+            print('Error: Filter must be a square matrix. I.e. number of rows and columns must match.')
+            sys.exit()
+        if conv_filter.shape[1]%2==0:
+            print('Error: Filter must have an odd size. I.e. number of rows and columns must be odd.')
+            sys.exit()
+        feature_maps = np.zeros((img.shape[0]-conv_filter.shape[1], 
+                                    img.shape[1]-conv_filter.shape[1], 
+                                    conv_filter.shape[0]))
+        for filter_num in range(conv_filter.shape[0]):
+            #print("Filter ", filter_num + 1)
+            curr_filter = conv_filter[filter_num, :]
+            if len(curr_filter.shape) > 2:
+                conv_map = self.conv_(img[:, :, 0], curr_filter[:, :, 0])
+                for ch_num in range(1, curr_filter.shape[-1]):
+                    conv_map = conv_map + self.conv_(img[:, :, ch_num], 
+                                    curr_filter[:, :, ch_num])
+            else:
+                conv_map = self.conv_(img, curr_filter)
+            feature_maps[:, :, filter_num] = conv_map
+        return feature_maps
