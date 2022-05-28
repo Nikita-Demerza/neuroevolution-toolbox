@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy import signal
 from scipy.stats import norm
-
+import cv2
 import copy
 import warnings
 warnings.filterwarnings('ignore')
@@ -166,6 +166,7 @@ class np_nn:
                 layer['belt_name'] = desc['name']
             elif desc['type']=='conv':
                 layer['filter']=np.array(np.random.normal(size=desc['filter_size'])*scale_weights, dtype=np.float16)
+                layer['filter_size']=desc['filter_size']
             elif desc['type']=='max_pool':
                 layer['pool_size']=desc['pool_size']
                 layer['stride']=desc['stride']
@@ -360,7 +361,14 @@ class np_nn:
                     inp = np.reshape(in_data,[*shp[1:]])
                 else:
                     inp = in_data
-                y = self.conv(img=inp, conv_filter=layer['filter'])
+                #y = self.conv(img=inp, conv_filter=layer['filter'])
+                if layer['filter_size'][-1]==3:
+                    yr = cv2.filter2D(inp,-1,np.uint16(layer['filter'][0,:,:,0]))
+                    yg = cv2.filter2D(inp,-1,np.uint16(layer['filter'][0,:,:,1]))
+                    yb = cv2.filter2D(inp,-1,np.uint16(layer['filter'][0,:,:,2]))
+                    y = (yr+yg+yb)/3
+                else:
+                    y = cv2.filter2D(inp,-1,np.uint16(layer['filter'][0,:,:,0]))
             elif layer['type']=='flatten':
                 size_out = 1
                 for i in in_data.shape: size_out = size_out*i
