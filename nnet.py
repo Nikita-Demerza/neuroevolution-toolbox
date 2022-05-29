@@ -93,6 +93,7 @@ class np_nn:
             if desc['type']=='gru':
                 in_size_cur += desc['cells']
             layer['type'] = desc['type']
+            layer['desc'] = desc
             #desc['out'] - это число "контактов" на выходе слоя
             #w_shape_in - это число "контактов" на выходе матрицы весов
             # вроде бы одинаковые вещи, но есть исключения
@@ -171,7 +172,8 @@ class np_nn:
                 layer['stride']=desc['stride']
                 layer['padding']=desc['padding']
                 layer['filter_size']=desc['filter_size']
-                layer['layer']=nn.Conv2d(layer['kernel'].shape[1], layer['kernel'].shape[0], (layer['kernel'].shape[2],layer['kernel'].shape[3]), layer['stride'], layer['padding'],bias=False)
+                #in_channels, out_channels, (kernel_size)
+                layer['layer']=nn.Conv2d(layer['kernel'].shape[0], layer['kernel'].shape[1], (layer['kernel'].shape[2],layer['kernel'].shape[3]), layer['stride'], layer['padding'],bias=False)
             elif desc['type']=='max_pool':
                 layer['pool_size']=desc['pool_size']
                 layer['stride']=desc['stride']
@@ -214,27 +216,35 @@ class np_nn:
                 in_data = np.concatenate([in_data, layer['cells']],axis=1)
             in_data = np.clip(in_data, a_min=-1e9,a_max=1e9)#убрать бесконечности
             if 'w' in layer:
-                y = np.dot(in_data + layer['b'],layer['w'])
+                inp = torch.tensor(in_data,dtype=torch.float32)
+                b = torch.tensor(layer['b'],dtype=torch.float32)
+                w = torch.tensor(layer['w'],dtype=torch.float32)
+                y = torch.matmul(inp + b,w)
+                del b
+                del w
+                del inp
+                
             else:
                 y = in_data
             y = np.clip(y, a_min=-1e9,a_max=1e9)#убрать бесконечности
             #нелинейность
             if layer['activation']=='relu':
-                y = np.clip(y, a_min=0,a_max=np.inf)
+                y = torch.clip(torch.tensor(y,dtype=torch.float32), min=0)
             elif layer['activation']=='lrelu':
-                y = np.clip(y, a_min=y*0.001,a_max=np.inf)
+                y = torch.tensor(y,dtype=torch.float32)
+                y = torch.clip(y, min=y*0.001)
             elif layer['activation']=='logtan':
-                y = np.arctan(y)/np.pi + 0.5
+                y = torch.arctan(torch.tensor(y,dtype=torch.float32))/np.pi + 0.5
             elif layer['activation']=='linear':
                 pass
             self.track_time('dot')
             #если gru, то запись в память
             if (layer['type']=='gru') or (layer['type']=='ggru_out'):
                 self.track_time('gru_write')
-                y_to_cell = np.dot(y,layer['w_mem'])
+                y_to_cell = torch.matmul(y,torch.tensor(layer['w_mem'],dtype=torch.float32))
                 y_what_write = y_to_cell[:,:layer['cells_sz']]
-                y_how_write = 0.5 + np.arctan(y_to_cell[:,layer['cells_sz']:])/np.pi
-                layer['cells'] = layer['cells']*(1-y_how_write) + y_what_write*y_how_write
+                y_how_write = 0.5 + torch.arctan(y_to_cell[:,layer['cells_sz']:])/np.pi
+                layer['cells'] = torch.tensor(layer['cells'],dtype=torch.float32)*(1-y_how_write) + y_what_write*y_how_write
                 self.track_time('gru_write ended')
             if layer['type']=='gru':
                 self.layers[i]['cells'] = layer['cells']
@@ -302,7 +312,11 @@ class np_nn:
                     #mask = np.exp(-((mask - m)**2)/(2*s**2))#Гаусс
                     mask,nonzeros = make_gaussian(m,s,np.shape(self.belts[layer['belt_name']])[1])
                     self.track_time('turing_write c')
-                    mask = mask*(np.arctan(y[0,2*i])/np.pi + 0.5)#с какой силой писать
+                    y = torch.tensor(y,dtype=torch.float32)
+                    mask = torch.tensor(mask,dtype=torch.float32)
+                    mask = mask*(torch.arctan(y[0,2*i])/np.pi + 0.5)#с какой силой писать
+                    mask = mask.detach().numpy()
+                    y = y.detach().numpy()
                     self.track_time(f'turing_write d mask: {len(mask)}')
                     value_wr = y[0,2*i+1]
                     if value_wr>1e5:
@@ -338,6 +352,7 @@ class np_nn:
                 y = in_data
             elif layer['type']=='modulator_inertial':
                 min_len = np.min([int(len(np.ravel(in_data))/2), len(np.ravel(self.belts[layer['belt_name']]))])
+                in_data = in_data.detach().numpy()
                 self.belts[layer['belt_name']][0,:min_len] += in_data[0,:min_len]
                 #первая половина связей идёт в модуляцию
                 #плюс все связи пробрасываются вперёд
@@ -363,27 +378,16 @@ class np_nn:
             elif layer['type']=='conv':
                 shp = np.shape(in_data)
                 inp = torch.tensor(in_data,dtype=torch.float32)
-                if shp[1]!=layer['kernel'].shape[1]:
-                    inp = inp.reshape((1,shp[3],shp[1],shp[2]))
-                #y = self.conv(img=inp, conv_filter=layer['filter'])
-                try:
-                    layer['layer'].load_state_dict({'weight': layer['kernel']}, strict=False)
-                except:
-                    print(layer['layer'].weight.shape)
-                    print(layer['kernel'].shape)
-                    1/0
-                try:
-                    y = layer['layer'](inp)
-                except:
-                    print(inp.shape)
-                    1/0
+                y = layer['layer'](inp)
+                del inp
             elif layer['type']=='flatten':
                 size_out = 1
                 for i in in_data.shape: size_out = size_out*i
-                y=in_data.reshape((size_out))
+                y=in_data.reshape((1,size_out))
             elif layer['type']=='max_pool':
                 inp = torch.tensor(in_data,dtype=torch.float32)
                 y=nn.MaxPool2d(layer['pool_size'], stride=layer['stride'])(inp)
+                del inp
             if 0:
                 if np.sum(np.isnan(y))>0:
                     print('nan in nn ')
