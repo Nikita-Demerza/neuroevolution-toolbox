@@ -173,7 +173,7 @@ class np_nn:
                 layer['padding']=desc['padding']
                 layer['filter_size']=desc['filter_size']
                 #in_channels, out_channels, (kernel_size)
-                layer['layer']=nn.Conv2d(layer['kernel'].shape[0], layer['kernel'].shape[1], (layer['kernel'].shape[2],layer['kernel'].shape[3]), layer['stride'], layer['padding'],bias=False)
+                layer['layer']=nn.Conv2d(layer['kernel'].shape[1], layer['kernel'].shape[0], (layer['kernel'].shape[2],layer['kernel'].shape[3]), layer['stride'], layer['padding'],bias=False)
             elif desc['type']=='max_pool':
                 layer['pool_size']=desc['pool_size']
                 layer['stride']=desc['stride']
@@ -205,6 +205,12 @@ class np_nn:
         shp = np.shape(x)
         if shp[0]>1:
             x = np.reshape(x,[1,*shp])
+        shp = np.shape(x)
+        if shp[1]>3:
+            try:
+                x = np.reshape(x,[shp[0],shp[3],shp[1],shp[2]])
+            except:
+                pass
         in_data = x
         if self.global_cells_sz>0:
             in_data = np.hstack([in_data,self.global_cells])
@@ -378,6 +384,7 @@ class np_nn:
             elif layer['type']=='conv':
                 shp = np.shape(in_data)
                 inp = torch.tensor(in_data,dtype=torch.float32)
+                layer['layer'].load_state_dict({'weight': torch.tensor(layer['kernel'])}, strict=False)
                 y = layer['layer'](inp)
                 del inp
             elif layer['type']=='flatten':
@@ -451,9 +458,9 @@ class np_nn:
                 delta = len(np.ravel(layer['w_modulable']))
                 layer['w_modulable'] = np.reshape(genom[pointer:pointer+delta],newshape=np.shape(layer['w_modulable']))
                 pointer += delta
-            if 'filter' in layer.keys():
-                delta = len(np.ravel(layer['filter']))
-                layer['filter'] = np.reshape(genom[pointer:pointer+delta],newshape=np.shape(layer['filter']))
+            if 'kernel' in layer.keys():
+                delta = len(np.ravel(layer['kernel']))
+                layer['kernel'] = np.reshape(genom[pointer:pointer+delta],newshape=np.shape(layer['kernel']))
                 pointer += delta
             
             self.layers[i] = layer
@@ -472,8 +479,8 @@ class np_nn:
                 genom.append(np.ravel(layer['w_mem']))
             if 'w_modulable' in layer.keys():
                 genom.append(np.ravel(layer['w_modulable']))
-            if 'filter' in layer.keys():
-                genom.append(np.ravel(layer['filter']))
+            if 'kernel' in layer.keys():
+                genom.append(np.ravel(layer['kernel']))
         genom = np.concatenate(genom,axis=0)
         return genom
     def conv_(self,img, conv_filter):

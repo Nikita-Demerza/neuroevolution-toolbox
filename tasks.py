@@ -57,7 +57,40 @@ class dynamic_test:
         np.random.seed(seed)
         #это проигрыватель функций
         #создать контроллер
-        controller = neural_tape_controller.nt_controller(tacts=1,genom=np.array(genom),input_size=36,output_size=5)
+        input_size = 36
+        #Это значит, что все state, которые у нас там дальше будут, мы сведём к этому размеру. Если выйдет больше - закрашимся
+        mem_size = 100
+        heads_mem = 2
+        input_size=36
+        output_size=5
+        layers_desc = [
+                {'type':'ff','out':input_size+2,'activation':'lrelu'},
+                {'type':'ff','out':60,'activation':'lrelu'},
+                {'type':'modulable','out':60,'name':'mod1','activation':'linear'},
+                {'type':'turing_read','name':'memory_tape','heads':heads_mem,'cells':mem_size,'activation':'lrelu'},
+                {'type':'ff','out':60,'activation':'lrelu'},
+                {'type':'turing_move','name':'memory_tape','heads':heads_mem,'cells':mem_size},
+                {'type':'turing_write','name':'memory_tape','heads':heads_mem,'cells':mem_size},           
+                {'type':'ff','out':60,'activation':'lrelu'},
+                {'type':'modulator_inertial','out':60,'name':'mod1','activation':'linear'},
+                {'type':'ff','out':60,'activation':'lrelu'},                           
+                {'type':'modulable','out':60,'name':'mod2','activation':'linear'},
+                {'type':'ff','out':60,'activation':'lrelu'},
+                {'type':'modulator_inertial','out':60,'name':'mod2','activation':'linear'},
+                {'type':'ff','out':60,'activation':'lrelu'},
+                {'type':'modulable','out':60,'name':'mod3','activation':'linear'},
+                {'type':'ff','out':60,'activation':'lrelu'},
+                {'type':'modulator_inertial','out':60,'name':'mod3','activation':'linear'},
+                {'type':'ff','out':60,'activation':'lrelu'},
+                {'type':'modulable','out':60,'name':'mod4','activation':'linear'},
+                {'type':'ff','out':60,'activation':'lrelu'},
+                {'type':'modulator_inertial','out':60,'name':'mod4','activation':'linear'},
+                {'type':'ff','out':60,'activation':'lrelu'},
+                {'type':'modulable','out':60,'name':'mod5','activation':'linear'},
+                {'type':'ff','out':60,'activation':'lrelu'},
+                {'type':'modulator_inertial','out':60,'name':'mod5','activation':'linear'},
+                {'type':'ff','out':output_size,'activation':'lrelu'}]
+        controller = neural_tape_controller.nt_controller(tacts=1,genom=np.array(genom),input_size=input_size,output_size=5,layers_desc=layers_desc)
         #зарядить ленту
         controller.init_output(np.zeros([1,size]))
         reward_sum = 0
@@ -70,8 +103,10 @@ class dynamic_test:
             reward_sum += reward
             if np.shape(state)[0]>1:
                 shp = np.shape(state)
-                state = np.reshape(state,[1,shp[0]])
-            out_tape = controller.act(state,reward,done)
+                state = np.reshape(state,shp[0])
+                z_state = np.zeros([1,input_size+2])
+                z_state[0,:len(state)] = state
+            out_tape = controller.act(z_state,reward,done)
         return reward_sum
 
     class aa_gun_2:
@@ -148,18 +183,18 @@ class dynamic_test:
                         bullet['t'] = 0
                         self.make_plane()
                         
-                        reward = 100
+                        reward = 10
                         if draw:
                             r=15
                             dr.ellipse((bullet['x']-r+x_shift, bullet['y']-r+y_shift, bullet['x']+r+x_shift, bullet['y']+r+y_shift), fill='white')
                             
                     elif (np.abs(bullet['x']-self.plane['x'])<collide_rad*2)and(np.abs(bullet['y']-self.plane['y'])<collide_rad*2):
-                        reward = 0.03#обозначить, что снаряд прошёл близко
+                        reward = 0.001#обозначить, что снаряд прошёл близко
                     elif (np.abs(bullet['x']-self.plane['x'])<collide_rad*4)and(np.abs(bullet['y']-self.plane['y'])<collide_rad*4):
-                        reward = 0.003#обозначить, что снаряд прошёл близко
+                        reward = 0.00001#обозначить, что снаряд прошёл близко
                     elif (np.abs(bullet['x']-self.plane['x'])<collide_rad*6)and(np.abs(bullet['y']-self.plane['y'])<collide_rad*6):
-                        reward = 0.0003#обозначить, что снаряд прошёл близко
-                    
+                        reward = 0.00000001#обозначить, что снаряд прошёл близко
+                        
                     if bullet['y']<0:
                         bullet['t'] = 0
                     self.bullets[i] = bullet
@@ -178,6 +213,7 @@ class dynamic_test:
             return reward
 
         def step(self,action, draw=False):
+            reward = 0
             #действия: поворот пушки, выстрел
             if action[0]>0.5:
                 action[0]=0.5
@@ -191,7 +227,6 @@ class dynamic_test:
                 self.gun['fi'] = 3.14-min_angle
             self.gun['t'] -= 1
             shoot = (action[1]>0.1)# and (self.gun['t']<=0)
-            reward = 0
             if shoot:
                 #создать новый снаряд
                 bullet_speed  = self.bullet_speed
@@ -204,15 +239,15 @@ class dynamic_test:
                 bullet['t'] = bullet_t
                 self.bullets.append(bullet)
                 self.gun['t'] = self.gun['cooldown']
-                reward = -2
+                reward += -0.1
 
             
             if self.plane['x']>=100:
                 #всё, улетел, пересоздаём
                 self.make_plane()
-                reward = reward -15
+                reward += -1
+            reward = self.step_simulation(draw=draw)
             done = 0
-            reward = reward + self.step_simulation(draw=draw)
             if len(self.bullets)>0:
                 bx,by = self.bullets[-1]['x'],self.bullets[-1]['y']
             else:
