@@ -116,7 +116,15 @@ class np_nn:
                 w_shape_in = desc['out']
             else:
                 w_shape_in = 1
-            if (desc['type']!='modulator_inertial') and (desc['type']!='modulator') and (desc['type']!='modulable') and (desc['type']!='modulable_solid') and (desc['type']!='conv') and (desc['type']!='flatten') and layer['type']!='max_pool':
+            if (desc['type']!='modulator_inertial')\
+                 and (desc['type']!='modulator')\
+                 and (desc['type']!='modulable')\
+                 and (desc['type']!='modulable_solid')\
+                 and (desc['type']!='conv')\
+                 and (desc['type']!='flatten')\
+                 and layer['type']!='max_pool'\
+                 and layer['type']!='connector_in'\
+                 and layer['type']!='connector_out':
                 layer['w'] = np.array(np.random.normal(size=[in_size_cur,w_shape_in])*scale_weights, dtype=np.float16)
                 layer['b'] = np.array(np.random.normal(size=[1, in_size_cur])*scale_weights, dtype=np.float16)
             elif (desc['type']=='modulable'):
@@ -177,6 +185,8 @@ class np_nn:
             elif desc['type']=='max_pool':
                 layer['pool_size']=desc['pool_size']
                 layer['stride']=desc['stride']
+            elif desc['type']=='connector_in' or desc['type']=='connector_out':
+                layer['belt_name'] = desc['name']
             if not ('activation' in desc.keys()):
                 desc['activation'] = 'relu'#max(0,x)
             layer['activation'] = desc['activation']
@@ -395,6 +405,13 @@ class np_nn:
                 inp = torch.tensor(in_data,dtype=torch.float32)
                 y=nn.MaxPool2d(layer['pool_size'], stride=layer['stride'])(inp)
                 del inp
+            elif layer['type']=='connector_in':
+                min_len = np.min([int(len(np.ravel(in_data))/2), len(np.ravel(self.belts[layer['belt_name']]))])
+                self.belts[layer['belt_name']][:,:min_len] = in_data[:,:min_len]
+                y = in_data
+            elif layer['type']=='connector_out':
+                min_len = np.min([int(len(np.ravel(in_data))/2), len(np.ravel(self.belts[layer['belt_name']]))])
+                y = torch.concat((in_data, self.belts[layer['belt_name']][:,:min_len]))
             if 0:
                 if np.sum(np.isnan(y))>0:
                     print('nan in nn ')
@@ -433,7 +450,7 @@ class np_nn:
             else:
                 self.belts[k] *= 0
             self.heads_m[k] = np.arange(0,len(self.heads_m[k])*10,10)
-            self.heads_d[k] = np.zeros(len(self.heads_d[k]),dtype=np.float16) + 5
+            self.heads_d[k] = np.zeros(len(self.heads_d[k]),dtype=np.float32) + 5
                 
     def assemble_genom(self,genom):
         #геном перегнать в нейросеть
