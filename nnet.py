@@ -187,10 +187,10 @@ class np_nn:
                 layer['stride']=desc['stride']
             elif desc['type']=='connector_in' or desc['type']=='connector_out':
                 layer['belt_name'] = desc['name']
-            elif (desc['type']=='kohonen'):
-                layer['w_kohonen'] = torch.tensor(np.array(np.random.normal(size=[1,in_size_cur])*scale_weights, dtype=np.float16),dtype=torch.float32)
+            elif (desc['type']=='tolerance'):
+                layer['w_tolerance'] = torch.tensor(np.array(np.random.normal(size=[1,in_size_cur*2])*scale_weights, dtype=np.float16),dtype=torch.float32)
                 layer['belt_name'] = desc['name']
-                self.belts[desc['name']] = np.zeros([1,in_size_cur],dtype=np.float16)
+                self.belts[desc['name']] = layer['w_tolerance'][0,in_size_cur:]
             if not ('activation' in desc.keys()):
                 desc['activation'] = 'relu'#max(0,x)
             layer['activation'] = desc['activation']
@@ -414,9 +414,9 @@ class np_nn:
             elif layer['type']=='connector_out':
                 min_len = np.min([int(len(np.ravel(in_data))/2), len(np.ravel(self.belts[layer['belt_name']]))])
                 y = torch.concat((in_data, self.belts[layer['belt_name']][:,:min_len]))
-            elif layer['type']=='kohonen':
+            elif layer['type']=='tolerance':
                 min_len = np.min([int(len(np.ravel(in_data))/2), len(np.ravel(self.belts[layer['belt_name']]))])
-                self.belts[layer['belt_name']][:,:min_len] = torch.tensor(self.belts[layer['belt_name']][:,:min_len])-in_data[:,:min_len]/layer['w_kohonen'][0,0:min_len]
+                self.belts[layer['belt_name']][:,:min_len] = torch.tensor(self.belts[layer['belt_name']][:,:min_len])-in_data[:,:min_len]/layer['w_tolerance'][0,0:min_len]
                 y=torch.tensor(self.belts[layer['belt_name']][:,:])*in_data
             if 0:
                 if np.sum(np.isnan(y))>0:
@@ -481,9 +481,10 @@ class np_nn:
                 delta = len(np.ravel(layer['w_modulable']))
                 layer['w_modulable'] = np.reshape(genom[pointer:pointer+delta],newshape=np.shape(layer['w_modulable']))
                 pointer += delta
-            if 'w_kohonen' in layer.keys():
-                delta = len(np.ravel(layer['w_kohonen']))
-                layer['w_kohonen'] = np.reshape(genom[pointer:pointer+delta],newshape=np.shape(layer['w_kohonen']))
+            if 'w_tolerance' in layer.keys():
+                delta = len(np.ravel(layer['w_tolerance']))
+                layer['w_tolerance'] = np.reshape(genom[pointer:pointer+delta],newshape=np.shape(layer['w_tolerance']))
+                self.belts[layer['belt_name']] = layer['w_tolerance'][:,layer['w_tolerance'].shape[1]//2:]
                 pointer += delta
             if 'kernel' in layer.keys():
                 delta = len(np.ravel(layer['kernel']))
@@ -506,8 +507,8 @@ class np_nn:
                 genom.append(np.ravel(layer['w_mem']))
             if 'w_modulable' in layer.keys():
                 genom.append(np.ravel(layer['w_modulable']))
-            if 'w_kohonen' in layer.keys():
-                genom.append(np.ravel(layer['w_kohonen']))
+            if 'w_tolerance' in layer.keys():
+                genom.append(np.ravel(layer['w_tolerance']))
             if 'kernel' in layer.keys():
                 genom.append(np.ravel(layer['kernel']))
         genom = np.concatenate(genom,axis=0)
