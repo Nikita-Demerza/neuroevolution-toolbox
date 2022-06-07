@@ -124,7 +124,8 @@ class np_nn:
                  and (desc['type']!='flatten')\
                  and layer['type']!='max_pool'\
                  and layer['type']!='connector_in'\
-                 and layer['type']!='connector_out':
+                 and layer['type']!='connector_out'\
+                 and (desc['type']!='ff_tolerance'):
                 layer['w'] = np.array(np.random.normal(size=[in_size_cur,w_shape_in])*scale_weights, dtype=np.float16)
                 layer['b'] = np.array(np.random.normal(size=[1, in_size_cur])*scale_weights, dtype=np.float16)
             elif (desc['type']=='modulable'):
@@ -188,9 +189,14 @@ class np_nn:
             elif desc['type']=='connector_in' or desc['type']=='connector_out':
                 layer['belt_name'] = desc['name']
             elif (desc['type']=='tolerance'):
-                layer['w_tolerance'] = torch.tensor(np.array(np.random.normal(size=[1,in_size_cur*2])*scale_weights, dtype=np.float16),dtype=torch.float32)
+                layer['w_tolerance'] = torch.tensor(np.array(np.random.normal(size=[1,2,in_size_cur])*scale_weights, dtype=np.float16),dtype=torch.float32)
                 layer['belt_name'] = desc['name']
-                self.belts[desc['name']] = layer['w_tolerance'][0,in_size_cur:]
+                self.belts[desc['name']] = layer['w_tolerance'][0,1]
+            elif (desc['type']=='ff_tolerance'):
+                layer['w_tolerance'] = torch.tensor(np.array(np.random.normal(size=[1,2,in_size_cur,w_shape_in])*scale_weights, dtype=np.float16),dtype=torch.float32)
+                layer['b_tolerance'] = torch.tensor(np.array(np.random.normal(size=[1, in_size_cur])*scale_weights, dtype=np.float16),dtype=torch.float32)
+                layer['belt_name'] = desc['name']
+                self.belts[desc['name']] = layer['w_tolerance'][0,1]
             if not ('activation' in desc.keys()):
                 desc['activation'] = 'relu'#max(0,x)
             layer['activation'] = desc['activation']
@@ -415,9 +421,12 @@ class np_nn:
                 min_len = np.min([int(len(np.ravel(in_data))/2), len(np.ravel(self.belts[layer['belt_name']]))])
                 y = torch.concat((in_data, self.belts[layer['belt_name']][:,:min_len]))
             elif layer['type']=='tolerance':
-                min_len = np.min([int(len(np.ravel(in_data))/2), len(np.ravel(self.belts[layer['belt_name']]))])
-                self.belts[layer['belt_name']][:,:min_len] = torch.tensor(self.belts[layer['belt_name']][:,:min_len])-in_data[:,:min_len]/layer['w_tolerance'][0,0:min_len]
+                self.belts[layer['belt_name']][:,:] = torch.tensor(self.belts[layer['belt_name']][:,:])-in_data[:,:]/layer['w_tolerance'][0,0]
                 y=torch.tensor(self.belts[layer['belt_name']][:,:])*in_data
+            elif layer['type']=='ff_tolerance':
+                w = (torch.tensor(in_data)*torch.ones((layer['w_tolerance'][0,0].shape[-1],1)))
+                self.belts[layer['belt_name']] = torch.tensor(self.belts[layer['belt_name']])-w.reshape((w.shape[-1],(w.shape[0] if w.shape[0]>1 else w.shape[1])))/layer['w_tolerance'][0,0]
+                y=torch.matmul(torch.tensor(in_data)+layer['b_tolerance'],torch.tensor(self.belts[layer['belt_name']]))
             if 0:
                 if np.sum(np.isnan(y))>0:
                     print('nan in nn ')
@@ -484,7 +493,11 @@ class np_nn:
             if 'w_tolerance' in layer.keys():
                 delta = len(np.ravel(layer['w_tolerance']))
                 layer['w_tolerance'] = np.reshape(genom[pointer:pointer+delta],newshape=np.shape(layer['w_tolerance']))
-                self.belts[layer['belt_name']] = layer['w_tolerance'][:,layer['w_tolerance'].shape[1]//2:]
+                self.belts[layer['belt_name']] = layer['w_tolerance'][:,1]
+                pointer += delta
+            if 'b_tolerance' in layer.keys():
+                delta = len(np.ravel(layer['b_tolerance']))
+                layer['b_tolerance'] = np.reshape(genom[pointer:pointer+delta],newshape=np.shape(layer['b_tolerance']))
                 pointer += delta
             if 'kernel' in layer.keys():
                 delta = len(np.ravel(layer['kernel']))
@@ -509,6 +522,8 @@ class np_nn:
                 genom.append(np.ravel(layer['w_modulable']))
             if 'w_tolerance' in layer.keys():
                 genom.append(np.ravel(layer['w_tolerance']))
+            if 'b_tolerance' in layer.keys():
+                genom.append(np.ravel(layer['b_tolerance']))
             if 'kernel' in layer.keys():
                 genom.append(np.ravel(layer['kernel']))
         genom = np.concatenate(genom,axis=0)
