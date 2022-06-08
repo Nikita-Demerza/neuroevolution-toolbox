@@ -57,8 +57,8 @@ class optimizer():
         time_penalty = 0.0005
         for opt_name in self.optimizer_list:
             #print(f'self.history_gain[{opt_name}]',self.history_gain[opt_name])
-            mx.append(torch.nanmean(self.history_gain[opt_name])-time_penalty*torch.nanmean(self.history_time[opt_name]))
-        std = torch_nanstd(mx)*0.5+0.000001
+            mx.append(torch.nanmean(torch.tensor(self.history_gain[opt_name])-time_penalty*torch.nanmean(torch.tensor(self.history_time[opt_name]))))
+        std = torch_nanstd(torch.tensor(mx))*0.5+0.000001
         #std = 0
         mx = torch.tensor(mx)
         mx[torch.isnan(mx)] = 1e10#невероятно хороший результат
