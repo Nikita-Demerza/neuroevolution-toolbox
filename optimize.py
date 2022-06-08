@@ -30,7 +30,7 @@ class optimizer():
             self.history_gain[opt_name].append(torch.nan)
             self.history_time[opt_name] = deque(maxlen=10)
             self.history_time[opt_name].append(torch.nan)
-        self.current_loss = torch.nan
+        self.current_loss = torch.tensor(torch.nan)
         self.parallel_cores = parallel_cores
         self.function = function#что оптимизировать
         self.best_genoms = deque(maxlen=10)
@@ -415,12 +415,12 @@ class optimizer():
         #get_extended - вывести все геномы, что остались на выходе. И их loss
         #ищем МАКСИМУМ
         n_jobs = self.parallel_cores
-        x_old = [np.random.random(size=size_x)*(bounds[1]-bounds[0]) + bounds[0] for i in range(int(popsize))]
+        x_old = torch.tensor([np.random.random(size=size_x)*(bounds[1]-bounds[0]) + bounds[0] for i in range(int(popsize))])
 
-        if len(start_point)>0:
-            #инициализация некими стартовыми точками
-            ln = torch.min([len(start_point),len(x_old)])
-            x_old[:ln]=start_point
+        #if len(start_point)>0:
+        #    #инициализация некими стартовыми точками
+        #    ln = np.min([len(start_point),len(x_old)])
+        #    x_old[:ln]=torch.tensor(start_point)
                       
         time_left = 0
         for t in range(maxiter):
@@ -432,8 +432,8 @@ class optimizer():
             else:
                 y_old = list(map(function, [x for x in x_old]))
             y_old = torch.tensor(y_old)
-            if torch.isnan(self.current_loss):
-                self.current_loss = torch.max(y_old)
+            if torch.isnan(torch.tensor(self.current_loss)):
+                self.current_loss = torch.tensor(torch.max(y_old))
                 time_left += len(y_old)
 
             #отобрать альфачей
@@ -445,7 +445,7 @@ class optimizer():
 
             x_new = []
             for elit in range(elitarism):
-                x_new.append(x_old[alpha_nums[elit]].copy())
+                x_new.append(torch.tensor(x_old[alpha_nums[elit]]))
             
             std_vector = torch.std(x_old,axis=0) + 0.0000001
             for child in range(popsize - elitarism):
@@ -466,7 +466,7 @@ class optimizer():
                 #x_c[x_c<bounds[0]]=bounds[0]
                 x_new.append(x_c.copy())
 
-            x_old = x_new
+            x_old = torch.tensor(x_new)
             if len(out)>0:
                 out[0] = x_old.copy()
 
