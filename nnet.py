@@ -396,9 +396,9 @@ class np_nn:
                 self.belts[layer['belt_name']][:,:] = torch.tensor(self.belts[layer['belt_name']][:,:])-in_data[:,:]/layer['w_tolerance'][0,0]
                 y=torch.tensor(self.belts[layer['belt_name']][:,:])*in_data
             elif layer['type']=='ff_tolerance':
-                w = (torch.tensor(in_data)*torch.ones((layer['w_tolerance'][0,0].shape[-1],1)))
-                self.belts[layer['belt_name']] = torch.tensor(self.belts[layer['belt_name']])-w.reshape((w.shape[-1],(w.shape[0] if w.shape[0]>1 else w.shape[1])))/layer['w_tolerance'][0,0]
-                y=torch.matmul(torch.tensor(in_data)+layer['b_tolerance'],torch.tensor(self.belts[layer['belt_name']]))
+                w = (in_data*torch.ones((layer['w_tolerance'][0,0].shape[-1],1)))
+                self.belts[layer['belt_name']] = self.belts[layer['belt_name']]-w.reshape((w.shape[-1],(w.shape[0] if w.shape[0]>1 else w.shape[1])))/layer['w_tolerance'][0,0]
+                y=torch.matmul(in_data+layer['b_tolerance'],self.belts[layer['belt_name']])
             if 0:
                 if torch.sum(torch.isnan(y))>0:
                     print('nan in nn ')
@@ -433,7 +433,7 @@ class np_nn:
                 
     def assemble_genom(self,genom):
         #геном перегнать в нейросеть
-        genom = torch.tensor(genom)
+        genom = torch.tensor(genom,dtype=torch.float32)
         pointer = 0
         for i in range(len(self.layers)):
             layer = self.layers[i]

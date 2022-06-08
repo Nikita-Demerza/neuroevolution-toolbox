@@ -30,7 +30,7 @@ class optimizer():
             self.history_gain[opt_name].append(torch.nan)
             self.history_time[opt_name] = deque(maxlen=10)
             self.history_time[opt_name].append(torch.nan)
-        self.current_loss = torch.tensor(torch.nan)
+        self.current_loss = torch.tensor(torch.nan,dtype=torch.float32)
         self.parallel_cores = parallel_cores
         self.function = function#что оптимизировать
         self.best_genoms = deque(maxlen=10)
@@ -57,17 +57,17 @@ class optimizer():
         time_penalty = 0.0005
         for opt_name in self.optimizer_list:
             #print(f'self.history_gain[{opt_name}]',self.history_gain[opt_name])
-            mx.append(torch.nanmean(torch.tensor(self.history_gain[opt_name])-time_penalty*torch.nanmean(torch.tensor(self.history_time[opt_name]))))
-        std = torch_nanstd(torch.tensor(mx))*0.5+0.000001
+            mx.append(torch.nanmean(torch.tensor(self.history_gain[opt_name],dtype=torch.float32)-time_penalty*torch.nanmean(torch.tensor(self.history_time[opt_name]))))
+        std = torch_nanstd(torch.tensor(mx,dtype=torch.float32))*0.5+0.000001
         #std = 0
-        mx = torch.tensor(mx)
+        mx = torch.tensor(mx,dtype=torch.float32)
         mx[torch.isnan(mx)] = 1e10#невероятно хороший результат
         if np.random.rand()<0.15:
             print('random trial')
             k_noise = 3
         else:
             k_noise = 0
-        mx_aug = mx + torch.tensor(np.random.rand(len(mx))*k_noise)
+        mx_aug = mx + torch.tensor(np.random.rand(len(mx))*k_noise,dtype=torch.float32)
         print('scores for optimizers augmented',mx_aug)
         amax = torch.argmax(mx_aug)
         chosen_optimizer = self.optimizer_list[amax]
@@ -206,7 +206,7 @@ class optimizer():
     def gradient(self,width,stripe,maxiter,step,opt_name,adapt=1.0,chance_retry=0,momentum_usage_coef=0,momentum_eta=0.5):
         n_jobs = self.parallel_cores
         genom_cur = self.best_genoms[-1]
-        genom_prev = torch.tensor(genom_cur)
+        genom_prev = torch.tensor(genom_cur,dtype=torch.float32)
         score_prev = self.function(genom_prev)
         y_start = score_prev
         retry = False
@@ -219,7 +219,7 @@ class optimizer():
                 for i in range(width):
                     idx = int(np.random.rand()*(len(self.best_genoms[-1])-1-stripe))
                     idx_lst.append(idx)
-                    genom_local = torch.tensor(genom_cur)
+                    genom_local = torch.tensor(genom_cur,dtype=torch.float32)
                     if np.random.rand()<0.5:
                         genom_local[idx:idx+stripe] += step
                     else:
@@ -232,16 +232,16 @@ class optimizer():
                     pool.join()
                 else:
                     y_lst = list(map(self.function, [x for x in genoms]))
-                y_deltas = torch.tensor(y_lst[1:]) - y_lst[0]
+                y_deltas = torch.tensor(y_lst[1:],dtype=torch.float32) - y_lst[0]
                 if torch.max(y_deltas)>0:
                     idx = idx_lst[torch.argmax(y_deltas)]
-                    genom_reserve = torch.tensor(genom_cur)
+                    genom_reserve = torch.tensor(genom_cur,dtype=torch.float32)
                     genom_reserve[idx:idx+stripe] += step
                 grad = y_deltas/torch.sum(torch.abs(y_deltas)+0.000001)
                     
             #ищем МАКСИМУМ
             for i in range(width):
-                genom_cur[idx_lst[i:i+stripe]] += grad[i]*step
+                genom_cur[idx_lst[i:i+stripe]] = torch.tensor(genom_cur[idx_lst[i:i+stripe]]) + torch.tensor(grad[i]*step)
             if momentum is not None:
                 genom_cur += momentum*momentum_usage_coef
                 
@@ -257,7 +257,7 @@ class optimizer():
                 
             if score_prev>=score_new:
                 print('undo')
-                genom_cur=torch.tensor(genom_prev)
+                genom_cur=torch.tensor(genom_prev,dtype=torch.float32)
                 step /=adapt
                 retry = False
             else:
@@ -267,7 +267,7 @@ class optimizer():
                     momentum += genom_cur - genom_prev
                 momentum *= momentum_eta
                 score_prev = score_new
-                genom_prev = torch.tensor(genom_cur)
+                genom_prev = torch.tensor(genom_cur,dtype=torch.float32)
                 step *=adapt
                 if np.random.rand()<chance_retry:
                     retry = True
@@ -344,7 +344,7 @@ class optimizer():
         n_jobs = self.parallel_cores
         width = 1
         genom_cur = self.best_genoms[-1]
-        genom_prev = torch.tensor(genom_cur)
+        genom_prev = torch.tensor(genom_cur,dtype=torch.float32)
         score_prev = self.function(genom_prev)
         y_start = score_prev
         retry = False
@@ -352,7 +352,7 @@ class optimizer():
             if not retry:
 
                 idx = int(np.random.rand()*(len(self.best_genoms[-1])-1-stripe))
-                genom_local = torch.tensor(genom_cur)
+                genom_local = torch.tensor(genom_cur,dtype=torch.float32)
                 if np.random.rand()<0.5:
                     step *= -1
                 genom_local[idx:idx+stripe] *= 1+step
@@ -360,7 +360,7 @@ class optimizer():
             score_new = self.function(genom_local)
             #y_deltas = y_lst[1] - y_lst[0]
             if score_new<score_prev:
-                genom_local = torch.tensor(genom_cur)
+                genom_local = torch.tensor(genom_cur,dtype=torch.float32)
                 step *= -1
                 genom_local[idx:idx+stripe] *= 1+step
                 score_new = self.function(genom_local)
@@ -370,12 +370,12 @@ class optimizer():
             print('score_new',score_new,'score_prev',score_prev,'gained',score_new-score_prev)
             if score_prev>=score_new:
                 print('undo')
-                genom_cur=torch.tensor(genom_prev)
+                genom_cur=torch.tensor(genom_prev,dtype=torch.float32)
                 step /=adapt
                 retry = False
             else:
                 score_prev = score_new
-                genom_prev = torch.tensor(genom_cur)
+                genom_prev = torch.tensor(genom_cur,dtype=torch.float32)
                 step *=adapt
                 if np.random.rand()<chance_retry:
                     retry = True
@@ -415,7 +415,7 @@ class optimizer():
         #get_extended - вывести все геномы, что остались на выходе. И их loss
         #ищем МАКСИМУМ
         n_jobs = self.parallel_cores
-        x_old = torch.tensor([np.random.random(size=size_x)*(bounds[1]-bounds[0]) + bounds[0] for i in range(int(popsize))])
+        x_old = torch.tensor([np.random.random(size=size_x)*(bounds[1]-bounds[0]) + bounds[0] for i in range(int(popsize))],dtype=torch.float32)
 
         #if len(start_point)>0:
         #    #инициализация некими стартовыми точками
@@ -431,9 +431,9 @@ class optimizer():
                 pool.join()
             else:
                 y_old = list(map(function, [x for x in x_old]))
-            y_old = torch.tensor(y_old)
-            if torch.isnan(torch.tensor(self.current_loss)):
-                self.current_loss = torch.tensor(torch.max(y_old))
+            y_old = torch.tensor(y_old,dtype=torch.float32)
+            if torch.isnan(torch.tensor(self.current_loss,dtype=torch.float32)):
+                self.current_loss = torch.tensor(torch.max(y_old),dtype=torch.float32)
                 time_left += len(y_old)
 
             #отобрать альфачей
@@ -445,30 +445,31 @@ class optimizer():
 
             x_new = []
             for elit in range(elitarism):
-                x_new.append(torch.tensor(x_old[alpha_nums[elit]]))
-            
+                x_new.append(x_old[alpha_nums[elit]].numpy())
             std_vector = torch.std(x_old,axis=0) + 0.0000001
             for child in range(popsize - elitarism):
                 #скрещиваем
                 crossed_alphas = alpha_nums[[np.random.randint(low=0,high=alpha_count),np.random.randint(low=0,high=alpha_count)]]
-                x_c = x_old[alpha_nums[0]]
+                x_c = x_old[alpha_nums[0]].numpy()
                 idx = np.random.rand(len(x_c))<0.5
-                x_c[idx] = x_old[alpha_nums[1]][idx]
+                x_c[idx] = x_old[alpha_nums[1]][idx].numpy()
                 x_new.append(x_c)
                 idx_muta = np.random.rand(len(x_c))<mutation_p
                 if mutation_amplitude_source=='rel':
-                    x_c[idx_muta] += torch.tensor((np.random.rand(len(x_c[idx_muta]))-0.5)*2*mutation_r*(x_c[idx_muta]+0.000001))
+                    x_c[idx_muta] += np.array((np.random.rand(len(x_c[idx_muta]))-0.5)*2*mutation_r*(x_c[idx_muta]+0.000001))
                 elif mutation_amplitude_source=='abs':
-                    x_c[idx_muta] += torch.tensor((np.random.rand(len(x_c[idx_muta]))-0.5)*2*mutation_r)
+                    x_c[idx_muta] += np.array((np.random.rand(len(x_c[idx_muta]))-0.5)*2*mutation_r)
                 elif mutation_amplitude_source=='std':
-                    x_c[idx_muta] += torch.tensor((np.random.rand(len(x_c[idx_muta]))-0.5)*2*mutation_r*std_vector[idx_muta])
-                #x_c[x_c>bounds[1]]=bounds[1]
-                #x_c[x_c<bounds[0]]=bounds[0]
-                x_new.append(x_c.copy())
-
-            x_old = torch.tensor(x_new)
+                    x_c[idx_muta] += np.array(((torch.tensor(np.random.rand(len(x_c[idx_muta])),dtype=torch.float32)-0.5)*2*mutation_r*std_vector[idx_muta]).numpy())
+                try:
+                    x_c = x_c.detach().numpy()
+                except:
+                    pass
+                x_new.append(x_c)
+            
+            x_old = torch.tensor(x_new,dtype=torch.float32)
             if len(out)>0:
-                out[0] = x_old.copy()
+                out[0] = x_old
 
             mutation_p = mutation_p*(1-mutation_p_e)
             
@@ -484,12 +485,12 @@ class optimizer():
             pool.join()
         else:
             y_old = list(map(function, [x for x in x_old]))
-        y_old = torch.tensor(y_old)
+        y_old = torch.tensor(y_old,dtype=torch.float32)
         time_left += len(y_old)
         alpha_nums = (-y_old).argsort()[:alpha_count]
         if verbose:
             print('iteration final y=',y_old[alpha_nums[:elitarism]])
         if get_extended:
-            return [x_new[alpha_nums[torch.argmax(y_old[alpha_nums])]],x_old.copy(), torch.tensor(y_old)]
+            return [x_new[alpha_nums[torch.argmax(y_old[alpha_nums])]],x_old, torch.tensor(y_old,dtype=torch.float32)]
         else:
-            return x_new[alpha_nums[torch.argmax(y_old[alpha_nums])]]
+            return torch.tensor(x_new[alpha_nums[torch.argmax(y_old[alpha_nums])]])
