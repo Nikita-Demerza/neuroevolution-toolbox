@@ -1,3 +1,4 @@
+import torch
 import nnet
 import sys
 import numpy as np
@@ -43,21 +44,26 @@ class nt_controller():
                 {'type':'connection_in','out':300,'name':'conn31','activation':'linear'},                           
                 {'type':'connection_out','out':600,'name':'conn51','activation':'linear'},
                 {'type':'connection_out','out':900,'name':'conn52','activation':'linear'},
-                {'type':'ff_tolerance','out':300,'name':'tol6','activation':'lrelu'},
+                {'type':'ff_tolerance','out':300,'name':'tol5','activation':'lrelu'},
                 {'type':'connection_in','out':300,'name':'conn52','activation':'linear'}, 
-                {'type':'connection_in','out':300,'name':'conn41','activation':'linear'},                            
+                {'type':'connection_in','out':300,'name':'conn41','activation':'linear'},                           
                 {'type':'connection_out','out':600,'name':'conn61','activation':'linear'},
                 {'type':'connection_out','out':900,'name':'conn62','activation':'linear'},
-                {'type':'ff_tolerance','out':300,'name':'tol7','activation':'lrelu'},
+                {'type':'ff_tolerance','out':300,'name':'tol6','activation':'lrelu'},
                 {'type':'connection_in','out':300,'name':'conn62','activation':'linear'}, 
-                {'type':'connection_in','out':300,'name':'conn51','activation':'linear'},                           
+                {'type':'connection_in','out':300,'name':'conn51','activation':'linear'},                            
                 {'type':'connection_out','out':600,'name':'conn71','activation':'linear'},
                 {'type':'connection_out','out':900,'name':'conn72','activation':'linear'},
-                {'type':'ff_tolerance','out':300,'name':'tol8','activation':'lrelu'},
+                {'type':'ff_tolerance','out':300,'name':'tol7','activation':'lrelu'},
                 {'type':'connection_in','out':300,'name':'conn72','activation':'linear'}, 
-                {'type':'connection_in','out':300,'name':'conn61','activation':'linear'},
+                {'type':'connection_in','out':300,'name':'conn61','activation':'linear'},                           
+                {'type':'connection_out','out':600,'name':'conn81','activation':'linear'},
+                {'type':'connection_out','out':900,'name':'conn82','activation':'linear'},
+                {'type':'ff_tolerance','out':300,'name':'tol8','activation':'lrelu'},
+                {'type':'connection_in','out':300,'name':'conn82','activation':'linear'}, 
+                {'type':'connection_in','out':300,'name':'conn71','activation':'linear'},
                 {'type':'ff_tolerance','out':300,'name':'tol9','activation':'lrelu'},
-                {'type':'connection_in','out':300,'name':'conn71','activation':'linear'},       
+                {'type':'connection_in','out':300,'name':'conn81','activation':'linear'},       
                 {'type':'ff_tolerance','out':output_size,'name':'tol10','activation':'lrelu'}]
         
         self.tacts = tacts#число тактов исполнения. Это ж типа МТ, так что надо дать несколько тактов
@@ -67,9 +73,9 @@ class nt_controller():
             self.nn.assemble_genom(genom)
         self.input_size = input_size
     def init_output(self,output):
-        shp = np.shape(output)
+        shp = torch.shape(output)
         if shp[0]>1:
-            output = np.reshape(output,[1,shp[0]])
+            output = torch.reshape(output,[1,shp[0]])
         self.nn.belts['out_tape'] = output
     def act(self,state,reward,done):
         #на входе state, чем бы он ни был - наблюдением в динамической задаче или геномом в статической
@@ -77,17 +83,11 @@ class nt_controller():
         #done - это последний доступный done
         #на выходе action
         
-        shp = np.shape(state)
+        shp = (state).shape
         if shp[0]>1:
-            state = np.reshape(state,[1,*shp])
-        #if np.shape(state)[1]<self.input_size:
-        #    state_extended = np.zeros([1,self.input_size])
-        #    state_extended[0,:np.shape(state)[1]] = state
-        #    state = state_extended
-        #затем запустим прогноз, но не один раз, а циклом
-        #inp = np.concatenate([np.array([reward,done]),state[0]])
+            state = torch.reshape(state,[1,*shp])
         inp = state[0]
-        in_ar = np.reshape(inp,[1,*inp.shape])
+        in_ar = torch.reshape(inp,[1,*inp.shape])
         for i in range(int(self.tacts)):
             out = self.nn.predict_vector(in_ar)
-        return np.array(out)
+        return torch.tensor(out)
