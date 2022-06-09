@@ -205,7 +205,7 @@ class optimizer():
         self.history_time[opt_name].append(time_left)
     def gradient(self,width,stripe,maxiter,step,opt_name,adapt=1.0,chance_retry=0,momentum_usage_coef=0,momentum_eta=0.5):
         n_jobs = self.parallel_cores
-        genom_cur = self.best_genoms[-1]
+        genom_cur = torch.tensor(self.best_genoms[-1],dtype=torch.float32)
         genom_prev = torch.tensor(genom_cur,dtype=torch.float32)
         score_prev = self.function(genom_prev)
         y_start = score_prev
