@@ -409,6 +409,7 @@ class optimizer():
 		#start_point - можно явно задать список стартовых генокодов
 		#get_extended - если True, то выводить не только наилучший генокод, а всё поколение
         #mutation_amplitude_source = 'rel' / 'abs'/ 'std'. 'rel' - значит, амплитуда 0.1 означает 0.1 от значения данного гена. 'abs' - 0.1 берётся просто. 'std' - значит, берётся 0.1 от среднего разброса по популяции
+        start_point = torch.tensor(list(np.array(i) for i in start_point))
         if seed<0:
             seed=int(pd.Timestamp.now().second+pd.Timestamp.now().minute*60)
         np.random.seed(seed)
@@ -417,10 +418,10 @@ class optimizer():
         n_jobs = self.parallel_cores
         x_old = torch.tensor([np.random.random(size=size_x)*(bounds[1]-bounds[0]) + bounds[0] for i in range(int(popsize))],dtype=torch.float32)
 
-        #if len(start_point)>0:
-        #    #инициализация некими стартовыми точками
-        #    ln = np.min([len(start_point),len(x_old)])
-        #    x_old[:ln]=torch.tensor(start_point)
+        if len(start_point)>0:
+            #инициализация некими стартовыми точками
+            ln = np.min([len(start_point),len(x_old)])
+            x_old[:ln]=torch.tensor(start_point)
                       
         time_left = 0
         for t in range(maxiter):

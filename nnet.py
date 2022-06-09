@@ -397,7 +397,7 @@ class np_nn:
                 y=torch.tensor(self.belts[layer['belt_name']][:,:])*in_data
             elif layer['type']=='ff_tolerance':
                 w = (in_data*torch.ones((layer['w_tolerance'][0,0].shape[-1],1)))
-                self.belts[layer['belt_name']] = self.belts[layer['belt_name']]-w.reshape((w.shape[-1],(w.shape[0] if w.shape[0]>1 else w.shape[1])))/layer['w_tolerance'][0,0]
+                self.belts[layer['belt_name']] = self.belts[layer['belt_name']]-w.reshape((w.shape[-1],(w.shape[0] if w.shape[0]>1 else w.shape[1])))*layer['w_tolerance'][0,0]
                 y=torch.matmul(in_data+layer['b_tolerance'],self.belts[layer['belt_name']])
             if 0:
                 if torch.sum(torch.isnan(y))>0:
@@ -413,6 +413,11 @@ class np_nn:
                     print("layer['b']",layer['b'])
                     print("layer['w']",layer['w'])
                     1/0
+            border = 5e4
+            idx = y>border
+            y[idx] = border
+            idx = y<-border
+            y[idx] = -border
             in_data = y
         y = torch.ravel(y)
         return y

@@ -23,20 +23,19 @@ class nt_controller():
                 {'type':'conv','filter_size':[1,1,3,3],'stride':1,'padding':0,'activation':'lrelu'},
                 {'type':'conv','filter_size':[1,1,3,3],'stride':1,'padding':0,'activation':'lrelu'},
                 {'type':'flatten','out':260,'activation':'linear'},
-                {'type':'connection_out','out':560,'name':'conn00','activation':'linear'},
-                {'type':'connection_out','out':860,'name':'conn11','activation':'linear'},
-                {'type':'connection_out','out':1160,'name':'conn12','activation':'linear'},
+                {'type':'connection_out','out':560,'name':'conn1','activation':'linear'},
+                {'type':'connection_out','out':860,'name':'conn2','activation':'linear'},
+                {'type':'connection_out','out':1160,'name':'conn3','activation':'linear'},
                 {'type':'ff_tolerance','out':300,'name':'tol1','activation':'lrelu'},
-                {'type':'connection_in','out':300,'name':'conn12','activation':'linear'},
-                {'type':'connection_out','out':600,'name':'conn21','activation':'linear'},
-                {'type':'connection_out','out':900,'name':'conn22','activation':'linear'},
+                {'type':'connection_in','out':300,'name':'conn1','activation':'linear'},
+                {'type':'connection_out','out':600,'name':'conn2','activation':'linear'},
+                {'type':'connection_out','out':900,'name':'conn3','activation':'linear'},
                 {'type':'ff_tolerance','out':300,'name':'tol2','activation':'lrelu'},
-                {'type':'connection_in','out':300,'name':'conn11','activation':'linear'}, 
-                {'type':'connection_in','out':300,'name':'conn22','activation':'linear'},
-                {'type':'ff_tolerance','out':300,'name':'tol9','activation':'lrelu'},
-                {'type':'connection_in','out':300,'name':'conn21','activation':'linear'},
-                {'type':'connection_in','out':300,'name':'conn00','activation':'linear'},          
-                {'type':'ff_tolerance','out':output_size,'name':'tol10','activation':'lrelu'}]
+                {'type':'connection_in','out':300,'name':'conn2','activation':'linear'},
+                {'type':'connection_out','out':600,'name':'conn3','activation':'linear'},
+                {'type':'ff_tolerance','out':300,'name':'tol3','activation':'lrelu'},
+                {'type':'connection_in','out':300,'name':'conn3','activation':'linear'},          
+                {'type':'ff_tolerance','out':output_size,'name':'tol4','activation':'lrelu'}]
         
         self.tacts = tacts#число тактов исполнения. Это ж типа МТ, так что надо дать несколько тактов
         self.nn = nnet.np_nn(layers_desc=layers_desc,in_size=input_size+2)
