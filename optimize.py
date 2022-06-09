@@ -33,7 +33,7 @@ class optimizer():
         self.current_loss = torch.tensor(torch.nan,dtype=torch.float32)
         self.parallel_cores = parallel_cores
         self.function = function#что оптимизировать
-        self.best_genoms = deque(maxlen=10)
+        self.best_genoms = torch.tensor(deque(maxlen=10))
         bounds = [-0.1,0.1]
         self.best_genoms.append(torch.tensor(np.random.random(size=genom_size)*(bounds[1]-bounds[0]) + bounds[0],dtype=torch.float32))
         self.genom_size = genom_size
@@ -41,7 +41,7 @@ class optimizer():
         self.init_file = init_file
         try:
             with open(self.init_file , 'rb') as f:
-                self.best_genoms.append(pickle.load(f))
+                self.best_genoms.append(torch.tensor(pickle.load(f),dtype=torch.float32))
             print('loaded successfully')
         except Exception:
             pass
@@ -421,7 +421,7 @@ class optimizer():
         if len(start_point)>0:
             #инициализация некими стартовыми точками
             ln = np.min([len(start_point),len(x_old)])
-            x_old[:ln]=torch.tensor(start_point)
+            x_old[:ln]=torch.tensor(start_point)[:ln]
                       
         time_left = 0
         for t in range(maxiter):
