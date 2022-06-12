@@ -33,7 +33,7 @@ class optimizer():
         self.current_loss = torch.tensor(torch.nan,dtype=torch.float32)
         self.parallel_cores = parallel_cores
         self.function = function#что оптимизировать
-        self.best_genoms = torch.tensor(deque(maxlen=10))
+        self.best_genoms = deque(maxlen=10)
         bounds = [-0.1,0.1]
         self.best_genoms.append(torch.tensor(np.random.random(size=genom_size)*(bounds[1]-bounds[0]) + bounds[0],dtype=torch.float32))
         self.genom_size = genom_size
@@ -130,7 +130,7 @@ class optimizer():
         
     def evol_wide(self):
         opt_name = 'evol_wide'
-        popsize=40
+        popsize=20
         maxiter=4
         [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.03,mutation_p_e=0.01,
                   mutation_r=0.2, alpha_count=6,elitarism=4,verbose=True,mutation_amplitude_source='std',
@@ -148,7 +148,7 @@ class optimizer():
         self.history_time[opt_name].append(time_left)
     def evol_narrow(self):
         opt_name = 'evol_narrow'
-        popsize=8
+        popsize=4
         maxiter=16
         [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.01,mutation_p_e=0.3,
                   mutation_r=0.1, alpha_count=3,elitarism=2,mutation_amplitude_source='std',verbose=True,
@@ -166,7 +166,7 @@ class optimizer():
         self.history_time[opt_name].append(time_left)
     def evol_soft(self):
         opt_name = 'evol_soft'
-        popsize=16
+        popsize=8
         maxiter=5
         [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=1,mutation_p_e=0.0,
                   mutation_r=0.004, alpha_count=5,elitarism=3,mutation_amplitude_source='std',verbose=True,
@@ -187,7 +187,7 @@ class optimizer():
         self.history_time[opt_name].append(time_left)
     def evol_mid_chaos(self):
         opt_name = 'evol_mid_chaos'
-        popsize=30
+        popsize=15
         maxiter=2
         [genom_best,genoms, losses] = self.evol_parallel(self.function,bounds=[-1,1],size_x=self.genom_size, popsize=popsize,maxiter=maxiter, mutation_p=0.05,mutation_p_e=0.1,
                   mutation_r=1.2, alpha_count=3,elitarism=3,mutation_amplitude_source='std',verbose=True,

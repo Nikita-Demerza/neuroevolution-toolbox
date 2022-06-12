@@ -127,7 +127,7 @@ class np_nn:
                  and layer['type']!='connector_out'\
                  and (desc['type']!='ff_tolerance'):
                 layer['w'] = torch.tensor(np.random.normal(size=[in_size_cur,w_shape_in])*scale_weights, dtype=torch.float32)
-                layer['b'] = torch.tensor(np.random.normal(size=[1, in_size_cur])*scale_weights, dtype=torch.float32)
+                layer['b'] = torch.tensor(np.random.normal(size=[1, desc['out']])*scale_weights ,dtype=torch.float32)
             elif (desc['type']=='modulable'):
                 layer['w_modulable'] = torch.tensor(np.random.normal(size=[1, in_size_cur*3])*scale_weights, dtype=torch.float32)
             elif (desc['type']=='modulable_solid'):
@@ -189,8 +189,8 @@ class np_nn:
                 layer['belt_name'] = desc['name']
                 self.belts[desc['name']] = layer['w_tolerance'][0,1]
             elif (desc['type']=='ff_tolerance'):
-                layer['w_tolerance'] = torch.tensor(np.array(np.random.normal(size=[1,2,in_size_cur,w_shape_in])*scale_weights, dtype=np.float16),dtype=torch.float32)
-                layer['b_tolerance'] = torch.tensor(np.array(np.random.normal(size=[1, in_size_cur])*scale_weights, dtype=np.float16),dtype=torch.float32)
+                layer['w_tolerance'] = torch.tensor(np.array(np.random.normal(size=[1,3,in_size_cur,w_shape_in])*scale_weights, dtype=np.float16),dtype=torch.float32)
+                layer['b_tolerance'] = torch.tensor(np.array(np.random.normal(size=[1, desc['out']])*scale_weights, dtype=np.float16),dtype=torch.float32)
                 layer['belt_name'] = desc['name']
                 self.belts[desc['name']] = layer['w_tolerance'][0,1]
             if not ('activation' in desc.keys()):
@@ -240,7 +240,7 @@ class np_nn:
                 inp = torch.tensor(in_data,dtype=torch.float32)
                 b = torch.tensor(layer['b'],dtype=torch.float32)
                 w = torch.tensor(layer['w'],dtype=torch.float32)
-                y = torch.matmul(inp + b,w)
+                y = torch.matmul(inp,w) + b
                 del b,w,inp
                 
             else:
@@ -396,9 +396,11 @@ class np_nn:
                 self.belts[layer['belt_name']][:,:] = torch.tensor(self.belts[layer['belt_name']][:,:])-in_data[:,:]/layer['w_tolerance'][0,0]
                 y=torch.tensor(self.belts[layer['belt_name']][:,:])*in_data
             elif layer['type']=='ff_tolerance':
-                w = (in_data*torch.ones((layer['w_tolerance'][0,0].shape[-1],1)))
-                self.belts[layer['belt_name']] = self.belts[layer['belt_name']]-w.reshape((w.shape[-1],(w.shape[0] if w.shape[0]>1 else w.shape[1])))*layer['w_tolerance'][0,0]
-                y=torch.matmul(in_data+layer['b_tolerance'],self.belts[layer['belt_name']])
+                inp = (in_data*torch.ones((layer['w_tolerance'][0,0].shape[-1],1)))
+                idx = self.belts[layer['belt_name']]<0
+                self.belts[layer['belt_name']] = self.belts[layer['belt_name']]-inp.reshape((inp.shape[-1],(inp.shape[0] if inp.shape[0]>1 else inp.shape[1])))*layer['w_tolerance'][0,0]
+                y=torch.matmul(in_data,self.belts[layer['belt_name']]+layer['w_tolerance'][0,2])+layer['b_tolerance']
+                del inp 
             if 0:
                 if torch.sum(torch.isnan(y))>0:
                     print('nan in nn ')
